@@ -3,34 +3,11 @@
 namespace Aporat\RateLimiter;
 
 use Illuminate\Contracts\Support\DeferrableProvider;
-use Illuminate\Foundation\Application as LaravelApplication;
 use Illuminate\Support\ServiceProvider;
-use Laravel\Lumen\Application as LumenApplication;
+use Illuminate\Support\Str;
 
 class RateLimiterServiceProvider extends ServiceProvider implements DeferrableProvider
 {
-
-    /**
-     * Bootstrap the application service
-     *
-     * @return void
-     */
-    public function boot()
-    {
-        if ($this->app instanceof LaravelApplication && $this->app->runningInConsole()) {
-            $this->publishes(
-                [__DIR__.'/Config/rate_limiter.php' => config_path('rate_limiter.php')],
-                'rate_limiter'
-            );
-        } elseif ($this->app instanceof LumenApplication) {
-            $this->app->configure('rate_limiter');
-        }
-
-        $this->mergeConfigFrom(
-            __DIR__ . '/Config/rate_limiter.php',
-            'rate_limiter'
-        );
-    }
 
     /**
      * Register the service provider.
@@ -39,10 +16,43 @@ class RateLimiterServiceProvider extends ServiceProvider implements DeferrablePr
      */
     public function register()
     {
+        $this->registerResources();
+        $this->registerRateLimitService();
+    }
+
+    /**
+     * Register the rate limiter service.
+     *
+     * @return void
+     */
+    public function registerRateLimitService()
+    {
         $this->app->singleton('rate-limiter', function ($app) {
             $config = $app->make('config')->get('rate_limiter');
             return new RateLimiter($config);
         });
+    }
+
+    /**
+     * Register resources.
+     *
+     * @return void
+     */
+    public function registerResources()
+    {
+        if ($this->isLumen()) {
+            $this->app->configure('rate_limiter');
+        } elseif ($this->app->runningInConsole()) {
+            $this->publishes(
+                [__DIR__.'/Config/rate_limiter.php' => config_path('rate_limiter.php')],
+                'rate_limiter'
+            );
+        }
+
+        $this->mergeConfigFrom(
+            __DIR__ . '/Config/rate_limiter.php',
+            'rate_limiter'
+        );
     }
 
     /**
@@ -53,5 +63,15 @@ class RateLimiterServiceProvider extends ServiceProvider implements DeferrablePr
     public function provides()
     {
         return 'rate-limiter';
+    }
+
+    /**
+     * Check if package is running under Lumen app
+     *
+     * @return bool
+     */
+    protected function isLumen()
+    {
+        return Str::contains($this->app->version(), 'Lumen') === true;
     }
 }
