@@ -22,18 +22,18 @@ final class RateLimit
             return $next($request);
         }
 
-        RateLimiter::withRequest($request)->checkIpAddress();
+        RateLimiter::create($request)->checkIpAddress();
 
         if (RateLimiter::getConfigValue('hourly_request_limit') > 0) {
-            RateLimiter::withRequest($request)->withClientIpAddress()->withName('requests:hourly')->withTimeInternal(3600)->limit(RateLimiter::getConfigValue('hourly_request_limit'));
+            RateLimiter::create($request)->withClientIpAddress()->withName('requests:hourly')->withTimeInternal(3600)->limit(RateLimiter::getConfigValue('hourly_request_limit'));
         }
 
         if (RateLimiter::getConfigValue('minute_request_limit') > 0) {
-            RateLimiter::withRequest($request)->withClientIpAddress()->withName('requests:minute')->withTimeInternal(60)->limit(RateLimiter::getConfigValue('minute_request_limit'));
+            RateLimiter::create($request)->withClientIpAddress()->withName('requests:minute')->withTimeInternal(60)->limit(RateLimiter::getConfigValue('minute_request_limit'));
         }
 
         if (RateLimiter::getConfigValue('second_request_limit') > 0) {
-            RateLimiter::withRequest($request)->withClientIpAddress()->withName('requests:second')->withTimeInternal(1)->limit(RateLimiter::getConfigValue('second_request_limit'));
+            RateLimiter::create($request)->withClientIpAddress()->withName('requests:second')->withTimeInternal(1)->limit(RateLimiter::getConfigValue('second_request_limit'));
         }
 
         return $next($request);

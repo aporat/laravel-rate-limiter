@@ -8,13 +8,15 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static string getRequestTag()
- * @method static RateLimiter withName(string $name)
- * @method static RateLimiter withRequest(Request $request)
- * @method static RateLimiter withResponse(Response $response)
- * @method static RateLimiter withRateLimitHeaders(bool $set_headers = true)
+ * @method static RateLimiter create(Request $request)
  * @method static RateLimiter withClientIpAddress()
+ * @method static RateLimiter withRequestInfo()
+ * @method static RateLimiter withName(string $name)
+ * @method static RateLimiter withRateLimitHeaders(bool $set_headers = true)
  * @method static RateLimiter withUserId(string $user_id)
  * @method static RateLimiter withTimeInternal(int $interval = 3600)
+ * @method static RateLimiter setRequestTag(string $request_tag)
+ * @method static RateLimiter withResponse(Response $response)
  * @method static void blockIpAddress(string $ip_address, int $seconds_to_block)
  * @method static void checkIpAddress()
  * @method static int count(): int

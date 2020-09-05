@@ -10,7 +10,7 @@ Request and actions rate limiter middleware for Laravel and Lumen
 
 ## Installation
 
-The filter-var service provider can be installed via [Composer](https://getcomposer.org/).
+The rate-limiter service provider can be installed via [Composer](https://getcomposer.org/).
 
 ```
 composer require aporat/laravel-rate-limiter
@@ -60,7 +60,7 @@ Register the `Aporat\RateLimiter\RateLimiterServiceProvider` in your `bootstrap/
     $app->register(Aporat\RateLimiter\RateLimiterServiceProvider::class);
 ```
 
-Copy the `filter-var.php` config file in to your project:
+Copy the `rate-limiter.php` config file in to your project:
 
 ```
     mkdir config

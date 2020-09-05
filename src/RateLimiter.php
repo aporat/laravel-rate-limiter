@@ -83,6 +83,16 @@ final class RateLimiter
     }
 
     /**
+     * @param string $request_tag
+     * @return $this
+     */
+    public function setRequestTag(string $request_tag = ''): self
+    {
+        $this->request_tag = $request_tag;
+        return $this;
+    }
+
+    /**
      * @return string request tag
      */
     public function getRequestTag(): string
@@ -111,10 +121,63 @@ final class RateLimiter
      *
      * @return self
      */
-    public function withRequest(Request $request): self
+    public function create(Request $request): self
     {
         $this->resetRequest();
         $this->request = $request;
+
+        return $this;
+    }
+
+    /**
+     * Limit by ip address
+     *
+     * @return self
+     */
+    public function withClientIpAddress(): self
+    {
+        $ip_address = $this->groupClientIp($this->request->getClientIp());
+
+        $this->request_tag .= $ip_address . ':';
+
+        return $this;
+    }
+
+    /**
+     * Limit by request info
+     *
+     * @return self
+     */
+    public function withRequestInfo(): self
+    {
+        $this->request_tag .= $this->request->getMethod() . ':';
+        $this->request_tag .= urlencode($this->request->getPathInfo()) . ':';
+
+        return $this;
+    }
+
+    /**
+     * limit by user id
+     *
+     * @param string $user_id
+     *
+     * @return self
+     */
+    public function withUserId(string $user_id): self
+    {
+        $this->request_tag .= $user_id . ':';
+
+        return $this;
+    }
+
+    /**
+     * @param int $interval time internal, in seconds
+     *
+     * @return self
+     */
+    public function withTimeInternal(int $interval = 3600): self
+    {
+        $this->interval_seconds = $interval;
 
         return $this;
     }
@@ -143,46 +206,6 @@ final class RateLimiter
     public function withRateLimitHeaders(bool $set_headers = true): self
     {
         $this->rate_limit_headers = $set_headers;
-
-        return $this;
-    }
-
-    /**
-     * Limit by ip address
-     *
-     * @return self
-     */
-    public function withClientIpAddress(): self
-    {
-        $ip_address = $this->groupClientIp($this->request->getClientIp());
-
-        $this->request_tag .= $ip_address . ':';
-
-        return $this;
-    }
-
-    /**
-     * limit by user id
-     *
-     * @param string $user_id
-     *
-     * @return self
-     */
-    public function withUserId(string $user_id): self
-    {
-        $this->request_tag .= $user_id . ':';
-
-        return $this;
-    }
-
-    /**
-     * @param int $interval time internal, in seconds
-     *
-     * @return self
-     */
-    public function withTimeInternal(int $interval = 3600): self
-    {
-        $this->interval_seconds = $interval;
 
         return $this;
     }
@@ -273,7 +296,7 @@ final class RateLimiter
             $actions_count = $this->countActions();
 
             if ($actions_count > $limit) {
-                throw new RateLimitException('Rate limit exceeded. Please try again later.', $this->request, ['tag' => $this->request_tag, 'limit' => $limit , 'action_count' => $action_count]);
+                throw new RateLimitException('Rate limit exceeded. Please try again later.', $this->request, ['tag' => $this->request_tag, 'limit' => $limit , 'action_count' => $actions_count]);
             }
         }
 
@@ -316,7 +339,6 @@ final class RateLimiter
         return $actions_count;
     }
 
-
     /**
      * @param string $ip_address
      * @param int $seconds_to_block
@@ -336,7 +358,7 @@ final class RateLimiter
     /**
      * @throws RateLimitException
      */
-    function checkIpAddress(): void
+    public function checkIpAddress(): void
     {
         $ip_address = $this->request->getClientIp();
 

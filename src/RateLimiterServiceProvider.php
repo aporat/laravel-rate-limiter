@@ -28,7 +28,7 @@ class RateLimiterServiceProvider extends ServiceProvider implements DeferrablePr
     public function registerRateLimitService()
     {
         $this->app->singleton('rate-limiter', function ($app) {
-            $config = $app->make('config')->get('rate_limiter');
+            $config = $app->make('config')->get('rate-limiter');
             return new RateLimiter($config);
         });
     }
@@ -41,17 +41,17 @@ class RateLimiterServiceProvider extends ServiceProvider implements DeferrablePr
     public function registerResources()
     {
         if ($this->isLumen()) {
-            $this->app->configure('rate_limiter');
+            $this->app->configure('rate-limiter');
         } elseif ($this->app->runningInConsole()) {
             $this->publishes(
-                [__DIR__.'/Config/rate_limiter.php' => config_path('rate_limiter.php')],
-                'rate_limiter'
+                [__DIR__ . '/Config/rate-limiter.php' => config_path('rate-limiter.php')],
+                'rate-limiter'
             );
         }
 
         $this->mergeConfigFrom(
-            __DIR__ . '/Config/rate_limiter.php',
-            'rate_limiter'
+            __DIR__ . '/Config/rate-limiter.php',
+            'rate-limiter'
         );
     }
 
