@@ -35,7 +35,7 @@ jobs:
         uses: "shivammathur/setup-php@v2"
         with:
           coverage: "none"
-          extensions: "intl"
+          extensions: redis, intl
           ini-values: "memory_limit=-1"
           php-version: "${{ matrix.php-version }}"
 
@@ -74,7 +74,7 @@ jobs:
         uses: "shivammathur/setup-php@v2"
         with:
           coverage: "xdebug"
-          extensions: "intl"
+          extensions: redis, intl
           ini-values: "memory_limit=-1"
           php-version: "${{ matrix.php-version }}"
 
