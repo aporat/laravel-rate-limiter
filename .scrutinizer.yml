@@ -1,6 +1,11 @@
 build:
   nodes:
     analysis:
+      environment:
+        php:
+          version: 7.4.9
+          pecl_extensions:
+            - redis
       services:
         redis: 6
       tests:
