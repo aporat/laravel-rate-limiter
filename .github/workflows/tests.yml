@@ -30,9 +30,6 @@ jobs:
     steps:
       - name: "Checkout"
         uses: "actions/checkout@v2"
-
-      - name: Start redis service
-        run: sudo /etc/init.d/redis-server restart
         
       - name: "Install PHP with extensions"
         uses: "shivammathur/setup-php@v2"
@@ -72,9 +69,6 @@ jobs:
     steps:
       - name: "Checkout"
         uses: "actions/checkout@v2"
-
-      - name: Start redis service
-        run: sudo /etc/init.d/redis-server restart
         
       - name: "Install PHP with extensions"
         uses: "shivammathur/setup-php@v2"
