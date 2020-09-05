@@ -31,6 +31,9 @@ jobs:
       - name: "Checkout"
         uses: "actions/checkout@v2"
 
+      - name: Start redis service
+        run: sudo /etc/init.d/redis start
+        
       - name: "Install PHP with extensions"
         uses: "shivammathur/setup-php@v2"
         with:
@@ -70,6 +73,9 @@ jobs:
       - name: "Checkout"
         uses: "actions/checkout@v2"
 
+      - name: Start redis service
+        run: sudo /etc/init.d/redis start
+        
       - name: "Install PHP with extensions"
         uses: "shivammathur/setup-php@v2"
         with:
@@ -81,7 +87,7 @@ jobs:
       - name: "Determine composer cache directory"
         id: "determine-composer-cache-directory"
         run: "echo \"::set-output name=directory::$(composer config cache-dir)\""
-
+        
       - name: "Cache dependencies installed with composer"
         uses: "actions/cache@v1"
         with:
