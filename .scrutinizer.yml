@@ -1,8 +1,8 @@
 build:
-  environment:
-    redis: true
   nodes:
     analysis:
+      services:
+        redis: 6
       tests:
         override:
           - php-scrutinizer-run
