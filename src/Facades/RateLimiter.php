@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static int count(): int
  * @method static int limit(int $limit = 5000, int $amount = 1): int
  * @method static int record($amount = 1): int
+ * @method static void clear()
  * @method static mixed getConfigValue(string $key)
  *
  * @see \Aporat\RateLimiter\RateLimiter
