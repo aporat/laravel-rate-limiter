@@ -276,7 +276,18 @@ final class RateLimiter
         return $actions_count;
     }
 
+    /**
+     ** clear the request tag
+     */
+    public function clear(): void
+    {
 
+        try {
+            $this->getRedisClient()->del($this->request_tag);
+        } catch (Exception $e) {
+            //
+        }
+    }
 
     /**
      * Rate limit a specific action
