@@ -19,8 +19,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static RateLimiter withResponse(Response $response)
  * @method static void blockIpAddress(string $ip_address, int $seconds_to_block)
  * @method static void checkIpAddress()
- * @method static int count(): int
- * @method static int limit(int $limit = 5000, int $amount = 1): int
+ * @method static int count()
+ * @method static int limit(int $limit = 5000, int $amount = 1)
  * @method static int record($amount = 1): int
  * @method static void clear()
  * @method static mixed getConfigValue(string $key)
