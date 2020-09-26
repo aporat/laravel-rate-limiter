@@ -27,14 +27,14 @@ class RateLimitRequestTest extends TestCase
         $config = include __DIR__ . '/../src/Config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
 
-        $request = Request::create('/test2', 'POST');
+        $request = Request::create('/test3', 'POST');
         $limit = $rate_limiter->create($request)->withRequestInfo()->withTimeInternal(10)->limit(1);
-        $this->assertEquals('POST:%2Ftest2:', $rate_limiter->getRequestTag());
+        $this->assertEquals('POST:test3:', $rate_limiter->getRequestTag());
         $this->assertEquals(1, $limit);
 
         $request = Request::create('/test2', 'GET');
         $limit = $rate_limiter->create($request)->withRequestInfo()->withTimeInternal(10)->limit(1);
-        $this->assertEquals('GET:%2Ftest2:', $rate_limiter->getRequestTag());
+        $this->assertEquals('GET:test2:', $rate_limiter->getRequestTag());
         $this->assertEquals(1, $limit);
     }
 }

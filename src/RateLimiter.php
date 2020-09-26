@@ -150,8 +150,7 @@ final class RateLimiter
      */
     public function withRequestInfo(): self
     {
-        $this->request_tag .= $this->request->getMethod() . ':';
-        $this->request_tag .= urlencode($this->request->getPathInfo()) . ':';
+        $this->request_tag .= $this->request->getMethod() . str_replace('/', ':', $this->request->getPathInfo()) . ':';
 
         return $this;
     }
