@@ -365,19 +365,35 @@ final class RateLimiter
         }
     }
 
+
     /**
-     * @throws RateLimitException
+     * @return bool
      */
-    public function checkIpAddress(): void
+    public function isIpAddressBlocked(): bool
     {
         $ip_address = $this->request->getClientIp();
 
         $tag = 'blocked:ip:' . $ip_address;
 
         if ($this->getRedisClient()->get($tag) == 'blocked') {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @throws RateLimitException
+     */
+    public function checkIpAddress(): void
+    {
+        if ($this->isIpAddressBlocked()) {
+            $ip_address = $this->request->getClientIp();
+
             throw new RateLimitException('Rate limit exceeded. Please try again later.', $this->request, ['ip_address' => $ip_address]);
         }
     }
+
     /**
      * Set the headers to the response
      *
