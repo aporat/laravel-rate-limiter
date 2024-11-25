@@ -2,9 +2,9 @@
 
 [![codecov](https://codecov.io/gh/aporat/laravel-rate-limiter/graph/badge.svg?token=N2077WRCUD)](https://codecov.io/gh/aporat/laravel-rate-limiter)
 [![StyleCI](https://github.styleci.io/repos/289521601/shield?branch=master)](https://github.styleci.io/repos/289521601?branch=master)
-[![Latest Version](http://img.shields.io/packagist/v/aporat/laravel-filter-var.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-filter-var)
-[![Latest Dev Version](https://img.shields.io/packagist/vpre/aporat/laravel-filter-var.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-filter-var#dev-develop)
-[![Monthly Downloads](https://img.shields.io/packagist/dm/aporat/laravel-filter-var.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-filter-var)
+[![Latest Version](http://img.shields.io/packagist/v/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-rate-limiter)
+[![Latest Dev Version](https://img.shields.io/packagist/vpre/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-rate-limiter#dev-develop)
+[![Monthly Downloads](https://img.shields.io/packagist/dm/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-rate-limiter)
 
 Request and actions rate limiter middleware for Laravel and Lumen
 
