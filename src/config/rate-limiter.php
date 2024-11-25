@@ -6,8 +6,8 @@ return [
     'second_request_limit' => 10,
 
     'redis' => [
-        'host' => '127.0.0.1',
-        'port' => 6379,
-        'prefix' => 'rate-limiter'
-    ]
+        'host'   => '127.0.0.1',
+        'port'   => 6379,
+        'prefix' => 'rate-limiter',
+    ],
 ];

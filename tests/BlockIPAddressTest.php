@@ -9,10 +9,9 @@ use PHPUnit\Framework\TestCase;
 
 class BlockIPAddressTest extends TestCase
 {
-
-    public function testBlockIPAddress() {
-
-        $config = include __DIR__ . '/../src/config/rate-limiter.php';
+    public function testBlockIPAddress()
+    {
+        $config = include __DIR__.'/../src/config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
         $request = Request::create('/');
 
@@ -21,5 +20,4 @@ class BlockIPAddressTest extends TestCase
         $this->expectException(RateLimitException::class);
         $rate_limiter->create($request)->checkIpAddress();
     }
-
 }

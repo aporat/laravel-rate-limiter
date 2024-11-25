@@ -9,22 +9,20 @@ use PHPUnit\Framework\TestCase;
 
 class RateLimitRequestTest extends TestCase
 {
-
-    public function testLimitRequestInfo() {
-
-        $config = include __DIR__ . '/../src/config/rate-limiter.php';
+    public function testLimitRequestInfo()
+    {
+        $config = include __DIR__.'/../src/config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
         $request = Request::create('/test', 'POST');
 
         $this->expectException(RateLimitException::class);
         $rate_limiter->create($request)->withRequestInfo()->withTimeInternal(10)->limit(1);
         $rate_limiter->create($request)->withRequestInfo()->withTimeInternal(10)->limit(1);
-
     }
 
-    public function testMethodLimitRequestInfo() {
-
-        $config = include __DIR__ . '/../src/config/rate-limiter.php';
+    public function testMethodLimitRequestInfo()
+    {
+        $config = include __DIR__.'/../src/config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
 
         $request = Request::create('/test3', 'POST');

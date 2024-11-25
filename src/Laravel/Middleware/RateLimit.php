@@ -9,15 +9,14 @@ use Illuminate\Support\Str;
 
 final class RateLimit
 {
-
     /**
      * @param Request $request
      * @param Closure $next
+     *
      * @return mixed
      */
     public function handle(Request $request, Closure $next): mixed
     {
-
         if ($request->getClientIp() != null && Str::substr($request->getClientIp(), 0, 5) == '10.0.') {
             return $next($request);
         }
@@ -38,5 +37,4 @@ final class RateLimit
 
         return $next($request);
     }
-
 }

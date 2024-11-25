@@ -8,7 +8,6 @@ use Illuminate\Support\ServiceProvider;
 
 class RateLimiterServiceProvider extends ServiceProvider implements DeferrableProvider
 {
-
     /**
      * Boot the service provider.
      *
