@@ -12,7 +12,7 @@ class RateLimitRequestTest extends TestCase
 
     public function testLimitRequestInfo() {
 
-        $config = include __DIR__ . '/../src/Config/rate-limiter.php';
+        $config = include __DIR__ . '/../src/config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
         $request = Request::create('/test', 'POST');
 
@@ -24,7 +24,7 @@ class RateLimitRequestTest extends TestCase
 
     public function testMethodLimitRequestInfo() {
 
-        $config = include __DIR__ . '/../src/Config/rate-limiter.php';
+        $config = include __DIR__ . '/../src/config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
 
         $request = Request::create('/test3', 'POST');

@@ -46,7 +46,7 @@ class RateLimitException extends Exception
      *
      * @return void
      */
-    public function report()
+    public function report(): void
     {
         $error = get_class($this) . ': ' . $this->getMessage();
 

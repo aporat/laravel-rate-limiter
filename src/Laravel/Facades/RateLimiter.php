@@ -1,6 +1,6 @@
 <?php
 
-namespace Aporat\RateLimiter\Facades;
+namespace Aporat\RateLimiter\Laravel\Facades;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -35,7 +35,7 @@ class RateLimiter extends Facade
      *
      * @return string
      */
-    protected static function getFacadeAccessor()
+    protected static function getFacadeAccessor(): string
     {
         return 'rate-limiter';
     }

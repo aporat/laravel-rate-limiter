@@ -12,7 +12,7 @@ class BlockIPAddressTest extends TestCase
 
     public function testBlockIPAddress() {
 
-        $config = include __DIR__ . '/../src/Config/rate-limiter.php';
+        $config = include __DIR__ . '/../src/config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
         $request = Request::create('/');
 

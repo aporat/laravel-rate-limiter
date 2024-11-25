@@ -4,8 +4,8 @@
     "type": "library",
     "authors": [
         {
-            "name": "Adar Porat",
-            "email": "adar.porat@gmail.com",
+            "name": "aporat28",
+            "email": "aporat28@gmail.com",
             "homepage": "https://github.com/aporat"
         }
     ],
@@ -18,7 +18,7 @@
         "MIT"
     ],
     "require": {
-        "php": "^8.0.0",
+        "php": "^8.2",
         "illuminate/support": "^10|^11",
         "illuminate/http": "^10|^11",
         "ext-json": "*",
@@ -48,11 +48,12 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Aporat\\RateLimiter\\Provider\\RateLimiterServiceProvider"
-            ],
-            "aliases": {
-                "Sms": "Aporat\\RateLimiter\\Facade\\RateLimiter"
-            }
+                "Aporat\\RateLimiter\\Laravel\\RateLimiterServiceProvider"
+            ]
         }
+    },
+    "scripts": {
+        "test": "phpunit --colors=always",
+        "test:ci": "phpunit --colors=always --coverage-text --coverage-clover=coverage.xml"
     }
 }

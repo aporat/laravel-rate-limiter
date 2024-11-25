@@ -77,7 +77,7 @@ final class RateLimiter
      * @param string $key
      * @return mixed
      */
-    public function getConfigValue(string $key)
+    public function getConfigValue(string $key): mixed
     {
         return Arr::get($this->config, $key);
     }
@@ -353,7 +353,7 @@ final class RateLimiter
      * @param string $ip_address
      * @param int $seconds_to_block
      */
-    public function blockIpAddress(string $ip_address, int $seconds_to_block = 60 * 60 * 24)
+    public function blockIpAddress(string $ip_address, int $seconds_to_block = 60 * 60 * 24): void
     {
         $ip_address = $this->groupClientIp($ip_address);
 

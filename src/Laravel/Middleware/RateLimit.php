@@ -1,8 +1,8 @@
 <?php
 
-namespace Aporat\RateLimiter\Middleware;
+namespace Aporat\RateLimiter\Laravel\Middleware;
 
-use Aporat\RateLimiter\Facades\RateLimiter;
+use Aporat\RateLimiter\Laravel\Facades\RateLimiter;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -15,7 +15,7 @@ final class RateLimit
      * @param Closure $next
      * @return mixed
      */
-    public function handle(Request $request, Closure $next)
+    public function handle(Request $request, Closure $next): mixed
     {
 
         if ($request->getClientIp() != null && Str::substr($request->getClientIp(), 0, 5) == '10.0.') {
