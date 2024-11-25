@@ -7,7 +7,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @method static string getRequestTag()
+ * @method static string      getRequestTag()
  * @method static RateLimiter create(Request $request)
  * @method static RateLimiter withClientIpAddress()
  * @method static RateLimiter withRequestInfo()
@@ -17,17 +17,16 @@ use Illuminate\Support\Facades\Facade;
  * @method static RateLimiter withTimeInternal(int $interval = 3600)
  * @method static RateLimiter setRequestTag(string $request_tag)
  * @method static RateLimiter withResponse(Response $response)
- * @method static void blockIpAddress(string $ip_address, int $seconds_to_block)
- * @method static void checkIpAddress()
- * @method static int count()
- * @method static int limit(int $limit = 5000, int $amount = 1)
+ * @method static void        blockIpAddress(string $ip_address, int $seconds_to_block)
+ * @method static void        checkIpAddress()
+ * @method static int         count()
+ * @method static int         limit(int $limit = 5000, int $amount = 1)
  * @method static int record($amount = 1): int
- * @method static void clear()
+ * @method static void  clear()
  * @method static mixed getConfigValue(string $key)
  *
  * @see \Aporat\RateLimiter\RateLimiter
  */
-
 class RateLimiter extends Facade
 {
     /**

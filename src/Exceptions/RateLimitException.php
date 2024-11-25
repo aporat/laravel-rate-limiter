@@ -19,10 +19,11 @@ class RateLimitException extends Exception
 
     /**
      * RateLimitException constructor.
-     * @param string|null $message
+     *
+     * @param string|null  $message
      * @param Request|null $request
-     * @param array|null $debugInfo
-     * @param bool $traceReporting
+     * @param array|null   $debugInfo
+     * @param bool         $traceReporting
      */
     public function __construct(?string $message, ?Request $request = null, ?array $debugInfo = null, $traceReporting = false)
     {
@@ -48,18 +49,18 @@ class RateLimitException extends Exception
      */
     public function report(): void
     {
-        $error = get_class($this) . ': ' . $this->getMessage();
+        $error = get_class($this).': '.$this->getMessage();
 
         if ($this->request != null) {
-            $error .= ' ' . $this->getRequestDescription();
+            $error .= ' '.$this->getRequestDescription();
         }
 
         if ($this->traceReporting) {
-            $error .= ' ' . $this->getTraceAsString();
+            $error .= ' '.$this->getTraceAsString();
         }
 
         if ($this->debugInfo != null) {
-            $error .= ' ' . json_encode($this->debugInfo);
+            $error .= ' '.json_encode($this->debugInfo);
         }
 
         Log::error($error);
@@ -70,6 +71,6 @@ class RateLimitException extends Exception
      */
     private function getRequestDescription(): string
     {
-        return $this->request->getMethod() . ' ' . $this->request->getRequestUri() . ' ' . $this->request->server('SERVER_ADDR') . ' ' . json_encode($this->request->all()) . ' ' . json_encode($this->request->header());
+        return $this->request->getMethod().' '.$this->request->getRequestUri().' '.$this->request->server('SERVER_ADDR').' '.json_encode($this->request->all()).' '.json_encode($this->request->header());
     }
 }
