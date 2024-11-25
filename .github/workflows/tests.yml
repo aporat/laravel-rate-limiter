@@ -11,6 +11,12 @@ jobs:
     php-tests:
         runs-on: ${{ matrix.os }}
 
+        services:
+            redisgraph:
+               image: redislabs/redisgraph:latest
+               ports:
+                - 6379:6379
+
         strategy:
             fail-fast: false
             matrix:
@@ -34,7 +40,7 @@ jobs:
               uses: shivammathur/setup-php@v2
               with:
                   php-version: ${{ matrix.php }}
-                  extensions: mbstring json openssl xdebug
+                  extensions: mbstring redis intl json openssl xdebug
                   ini-values: memory_limit=-1
                   tools: composer:v2
                   coverage: ${{ matrix.coverage }}
