@@ -9,47 +9,45 @@ use Illuminate\Support\ServiceProvider;
 class RateLimiterServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     /**
-     * Boot the service provider.
-     *
-     * @return void
-     */
-    public function boot(): void
-    {
-        $this->setupConfig();
-    }
-
-    /**
-     * Setup the config.
-     *
-     * @return void
-     */
-    private function setupConfig(): void
-    {
-        $source = realpath($raw = __DIR__.'/../config/rate-limiter.php') ?: $raw;
-
-        if ($this->app->runningInConsole()) {
-            $this->publishes([$source => config_path('rate-limiter.php')]);
-        }
-
-        $this->mergeConfigFrom($source, 'rate-limiter');
-    }
-
-    /**
      * Register the service provider.
      *
      * @return void
      */
     public function register(): void
     {
+        $configPath = __DIR__.'/../../config/rate-limiter.php';
+        $this->mergeConfigFrom($configPath, 'rate-limiter');
+    }
+
+    /**
+     * Bootstrap the application events.
+     *
+     * @return void
+     */
+    public function boot(): void
+    {
+        $configPath = __DIR__.'/../../config/rate-limiter.php';
+        $this->publishes([$configPath => $this->getConfigPath()], 'config');
+
         $this->registerRateLimitService();
     }
 
     /**
-     * Register currency provider.
+     * Get the config path.
+     *
+     * @return string
+     */
+    protected function getConfigPath(): string
+    {
+        return config_path('rate-limiter.php');
+    }
+
+    /**
+     * Register the rate limit provider.
      *
      * @return void
      */
-    public function registerRateLimitService()
+    public function registerRateLimitService(): void
     {
         $this->app->singleton('rate-limiter', function ($app) {
             $config = $app->make('config')->get('rate-limiter');

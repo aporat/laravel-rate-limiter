@@ -218,7 +218,7 @@ final class RateLimiter
 
         try {
             $actions_count = (int) $this->getRedisClient()->get($this->request_tag);
-        } catch (Exception $e) {
+        } catch (Exception) {
             //
         }
 
@@ -257,13 +257,13 @@ final class RateLimiter
      *
      * @return int
      */
-    public function record($amount = 1): int
+    public function record(int $amount = 1): int
     {
         $actions_count = 0;
 
         try {
             $actions_count = $this->getRedisClient()->incrby($this->request_tag, $amount);
-        } catch (Exception $e) {
+        } catch (Exception) {
             //
         }
 
@@ -282,7 +282,7 @@ final class RateLimiter
     {
         try {
             $this->getRedisClient()->del($this->request_tag);
-        } catch (Exception $e) {
+        } catch (Exception) {
             //
         }
     }
@@ -324,7 +324,7 @@ final class RateLimiter
 
         try {
             $actions_count = $this->getRedisClient()->sadd($this->request_tag, $actions);
-        } catch (Exception $e) {
+        } catch (Exception) {
             //
         }
 
@@ -343,7 +343,7 @@ final class RateLimiter
 
         try {
             $actions_count = count($this->getRedisClient()->smembers($this->request_tag));
-        } catch (Exception $e) {
+        } catch (Exception) {
             //
         }
 
@@ -405,8 +405,8 @@ final class RateLimiter
      */
     protected function setHeaders(Response $response, int $total_limit, int $remaining_limit): Response
     {
-        $response = $response->header('X-Rate-Limit-Limit', (string) $total_limit);
-        $response = $response->header('X-Rate-Limit-Remaining', (string) $remaining_limit);
+        $response->header('X-Rate-Limit-Limit', (string) $total_limit);
+        $response->header('X-Rate-Limit-Remaining', (string) $remaining_limit);
 
         return $response;
     }
@@ -431,7 +431,7 @@ final class RateLimiter
     protected function groupClientIp(?string $ip_address): ?string
     {
         // ipv6 should be grouped
-        if ($ip_address != null && strpos($ip_address, '::') !== false && substr_count($ip_address, ':') == 4) {
+        if ($ip_address != null && str_contains($ip_address, '::') && substr_count($ip_address, ':') == 4) {
             $ip_address = Str::substr($ip_address, 0, 9);
         }
 
