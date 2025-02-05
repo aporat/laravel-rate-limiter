@@ -11,7 +11,7 @@ class RateLimiterTest extends TestCase
 {
     public function testConstructorWithArguments()
     {
-        $config = include __DIR__ . '/../config/rate-limiter.php';
+        $config = include __DIR__.'/../config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
 
         $this->assertInstanceOf('Aporat\RateLimiter\RateLimiter', $rate_limiter);
@@ -19,7 +19,7 @@ class RateLimiterTest extends TestCase
 
     public function testDefaultSettings()
     {
-        $config = include __DIR__ . '/../config/rate-limiter.php';
+        $config = include __DIR__.'/../config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
 
         $this->assertEquals(3000, $rate_limiter->getConfigValue('hourly_request_limit'));
@@ -29,7 +29,7 @@ class RateLimiterTest extends TestCase
 
     public function testCustomSettings()
     {
-        $config = include __DIR__ . '/../config/rate-limiter.php';
+        $config = include __DIR__.'/../config/rate-limiter.php';
         $config['hourly_request_limit'] = 5000;
         $config['minute_request_limit'] = 100;
         $config['second_request_limit'] = 5;
@@ -43,7 +43,7 @@ class RateLimiterTest extends TestCase
 
     public function testCount()
     {
-        $config = include __DIR__ . '/../config/rate-limiter.php';
+        $config = include __DIR__.'/../config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
         $request = Request::create('/');
 
@@ -59,7 +59,7 @@ class RateLimiterTest extends TestCase
 
     public function testLimit()
     {
-        $config = include __DIR__ . '/../config/rate-limiter.php';
+        $config = include __DIR__.'/../config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
         $request = Request::create('/');
 
@@ -75,7 +75,7 @@ class RateLimiterTest extends TestCase
 
     public function testLimitNotReached()
     {
-        $config = include __DIR__ . '/../config/rate-limiter.php';
+        $config = include __DIR__.'/../config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
         $request = Request::create('/');
 
@@ -85,7 +85,7 @@ class RateLimiterTest extends TestCase
 
     public function testRequestTagGeneration()
     {
-        $config = include __DIR__ . '/../config/rate-limiter.php';
+        $config = include __DIR__.'/../config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
         $request = Request::create('/');
 
@@ -95,7 +95,7 @@ class RateLimiterTest extends TestCase
 
     public function testSetTag()
     {
-        $config = include __DIR__ . '/../config/rate-limiter.php';
+        $config = include __DIR__.'/../config/rate-limiter.php';
         $rate_limiter = new RateLimiter($config);
 
         $rate_limiter->setRequestTag('request:set:');
