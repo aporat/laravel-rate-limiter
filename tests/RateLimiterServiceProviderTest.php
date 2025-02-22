@@ -34,13 +34,13 @@ class RateLimiterServiceProviderTest extends TestCase
 
     public function test_config_is_publishable(): void
     {
-        $sourcePath = realpath(__DIR__ . '/../config/rate-limiter.php');
+        $sourcePath = realpath(__DIR__.'/../config/rate-limiter.php');
         $targetPath = $this->app->configPath('rate-limiter.php');
 
         $this->artisan('vendor:publish', [
             '--provider' => RateLimiterServiceProvider::class,
-            '--tag' => 'config',
-            '--force' => true,
+            '--tag'      => 'config',
+            '--force'    => true,
         ]);
 
         $this->assertFileExists($targetPath);

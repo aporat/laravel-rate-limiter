@@ -11,7 +11,7 @@ class BlockIPAddressTest extends TestCase
 {
     public function test_block_ip_address_triggers_exception(): void
     {
-        $config = include __DIR__ . '/../config/rate-limiter.php';
+        $config = include __DIR__.'/../config/rate-limiter.php';
         $rateLimiter = new RateLimiter($config);
         $request = Request::create('/');
 
