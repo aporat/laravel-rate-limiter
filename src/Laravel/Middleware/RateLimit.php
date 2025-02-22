@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Aporat\RateLimiter\Laravel\Middleware;
 
 use Aporat\RateLimiter\Laravel\Facades\RateLimiter;
@@ -7,34 +9,60 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
+/**
+ * Middleware to enforce rate limits on incoming requests.
+ *
+ * Applies rate limiting based on configured hourly, minute, and second thresholds,
+ * exempting internal IPs (starting with "10.0."). Uses the RateLimiter facade to
+ * track and enforce limits.
+ */
 final class RateLimit
 {
     /**
-     * @param Request $request
-     * @param Closure $next
+     * Handle an incoming request and apply rate limiting.
      *
-     * @return mixed
+     * @param \Illuminate\Http\Request $request The incoming HTTP request
+     * @param \Closure $next The next middleware in the stack
+     * @return mixed The response after applying rate limits
      */
     public function handle(Request $request, Closure $next): mixed
     {
-        if ($request->getClientIp() != null && Str::substr($request->getClientIp(), 0, 5) == '10.0.') {
+        $clientIp = $request->getClientIp();
+
+        // Exempt internal IPs starting with "10.0."
+        if ($clientIp !== null && Str::startsWith($clientIp, '10.0.')) {
             return $next($request);
         }
 
+        // Check if the IP is blocked
         RateLimiter::create($request)->checkIpAddress();
 
-        if (RateLimiter::getConfigValue('hourly_request_limit') > 0) {
-            RateLimiter::create($request)->withClientIpAddress()->withName('requests:hourly')->withTimeInternal(3600)->limit(RateLimiter::getConfigValue('hourly_request_limit'));
-        }
-
-        if (RateLimiter::getConfigValue('minute_request_limit') > 0) {
-            RateLimiter::create($request)->withClientIpAddress()->withName('requests:minute')->withTimeInternal(60)->limit(RateLimiter::getConfigValue('minute_request_limit'));
-        }
-
-        if (RateLimiter::getConfigValue('second_request_limit') > 0) {
-            RateLimiter::create($request)->withClientIpAddress()->withName('requests:second')->withTimeInternal(1)->limit(RateLimiter::getConfigValue('second_request_limit'));
-        }
+        // Apply rate limits from config
+        $limiter = RateLimiter::create($request)->withClientIpAddress();
+        $this->applyRateLimits($limiter);
 
         return $next($request);
+    }
+
+    /**
+     * Apply configured rate limits to the RateLimiter instance.
+     *
+     * @param \Aporat\RateLimiter\RateLimiter $limiter The configured RateLimiter instance
+     */
+    private function applyRateLimits(RateLimiter $limiter): void
+    {
+        $limits = [
+            'hourly' => ['limit' => config('rate-limiter.limits.hourly', 0), 'interval' => 3600],
+            'minute' => ['limit' => config('rate-limiter.limits.minute', 0), 'interval' => 60],
+            'second' => ['limit' => config('rate-limiter.limits.second', 0), 'interval' => 1],
+        ];
+
+        foreach ($limits as $name => $settings) {
+            if ($settings['limit'] > 0) {
+                $limiter->withName("requests:{$name}")
+                    ->withTimeInterval($settings['interval'])
+                    ->limit($settings['limit']);
+            }
+        }
     }
 }

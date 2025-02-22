@@ -1,70 +1,60 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Aporat\RateLimiter\Laravel;
 
 use Aporat\RateLimiter\RateLimiter;
 use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
 
+/**
+ * Service provider for the Laravel Rate Limiter package.
+ *
+ * Registers the RateLimiter service as a singleton and manages configuration
+ * merging and publishing for rate limiting functionality.
+ */
 class RateLimiterServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     /**
-     * Register the service provider.
+     * Path to the package's configuration file.
      *
-     * @return void
+     * @var string
+     */
+    private const CONFIG_PATH = __DIR__ . '/../../config/rate-limiter.php';
+
+    /**
+     * Register services in the container.
      */
     public function register(): void
     {
-        $configPath = __DIR__.'/../../config/rate-limiter.php';
-        $this->mergeConfigFrom($configPath, 'rate-limiter');
+        $this->mergeConfigFrom(self::CONFIG_PATH, 'rate-limiter');
+        $this->registerRateLimiterService();
     }
 
     /**
-     * Bootstrap the application events.
-     *
-     * @return void
+     * Bootstrap services and publish configuration.
      */
     public function boot(): void
     {
-        $configPath = __DIR__.'/../../config/rate-limiter.php';
-        $this->publishes([$configPath => $this->getConfigPath()], 'config');
-
-        $this->registerRateLimitService();
+        $this->publishes([self::CONFIG_PATH => config_path('rate-limiter.php')], 'config');
     }
 
     /**
-     * Get the config path.
-     *
-     * @return string
+     * Register the RateLimiter singleton in the container.
      */
-    protected function getConfigPath(): string
+    protected function registerRateLimiterService(): void
     {
-        return config_path('rate-limiter.php');
+        $this->app->singleton('rate-limiter', fn ($app) => new RateLimiter($app['config']['rate-limiter']));
     }
 
     /**
-     * Register the rate limit provider.
+     * Get the services provided by this provider.
      *
-     * @return void
-     */
-    public function registerRateLimitService(): void
-    {
-        $this->app->singleton('rate-limiter', function ($app) {
-            $config = $app->make('config')->get('rate-limiter');
-
-            return new RateLimiter($config);
-        });
-    }
-
-    /**
-     * Get the services provided by the provider.
-     *
-     * @return string[]
+     * @return array<int, string>
      */
     public function provides(): array
     {
-        return [
-            'rate-limiter',
-        ];
+        return ['rate-limiter'];
     }
 }

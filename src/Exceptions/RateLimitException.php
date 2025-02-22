@@ -1,41 +1,61 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Aporat\RateLimiter\Exceptions;
 
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Exception thrown when a rate limit is exceeded.
+ *
+ * This exception provides a 429 status code and logs detailed information about the
+ * request, including method, URI, server details, and optional debug data.
+ */
 class RateLimitException extends Exception
 {
-    /** @var bool */
-    protected bool $traceReporting = true;
-
-    /** @var array|null */
-    protected ?array $debugInfo = null;
-
-    /** @var Request|null */
-    private ?Request $request;
+    /**
+     * Whether to include the stack trace in the log report.
+     *
+     * @var bool
+     */
+    protected bool $traceReporting;
 
     /**
-     * RateLimitException constructor.
+     * Additional debug information to include in the log.
      *
-     * @param string|null  $message
-     * @param Request|null $request
-     * @param array|null   $debugInfo
-     * @param bool         $traceReporting
+     * @var array|null
      */
-    public function __construct(?string $message, ?Request $request = null, ?array $debugInfo = null, $traceReporting = false)
+    protected ?array $debugInfo;
+
+    /**
+     * The HTTP request that triggered the exception.
+     *
+     * @var Request|null
+     */
+    protected ?Request $request;
+
+    /**
+     * Create a new rate limit exception instance.
+     *
+     * @param string|null $message The exception message (defaults to "Too Many Requests")
+     * @param Request|null $request The request triggering the limit
+     * @param array|null $debugInfo Additional debug data to log
+     * @param bool $traceReporting Whether to log the stack trace
+     */
+    public function __construct(?string $message = 'Too Many Requests', ?Request $request = null, ?array $debugInfo = null, bool $traceReporting = false)
     {
-        parent::__construct($message);
+        parent::__construct($message ?? 'Too Many Requests');
 
         $this->request = $request;
-        $this->traceReporting = $traceReporting;
         $this->debugInfo = $debugInfo;
+        $this->traceReporting = $traceReporting;
     }
 
     /**
-     * @return int
+     * Get the HTTP status code for the exception.
      */
     public function getStatusCode(): int
     {
@@ -43,34 +63,41 @@ class RateLimitException extends Exception
     }
 
     /**
-     * Report the exception.
-     *
-     * @return void
+     * Report the exception to the log.
      */
     public function report(): void
     {
-        $error = get_class($this).': '.$this->getMessage();
+        $messageParts = [
+            get_class($this) . ': ' . $this->getMessage(),
+        ];
 
-        if ($this->request != null) {
-            $error .= ' '.$this->getRequestDescription();
+        if ($this->request !== null) {
+            $messageParts[] = $this->getRequestDescription();
         }
 
         if ($this->traceReporting) {
-            $error .= ' '.$this->getTraceAsString();
+            $messageParts[] = $this->getTraceAsString();
         }
 
-        if ($this->debugInfo != null) {
-            $error .= ' '.json_encode($this->debugInfo);
+        if ($this->debugInfo !== null) {
+            $messageParts[] = json_encode($this->debugInfo, JSON_THROW_ON_ERROR);
         }
 
-        Log::error($error);
+        Log::error(implode(' ', $messageParts));
     }
 
     /**
-     * @return string
+     * Get a descriptive string of the request details.
      */
     private function getRequestDescription(): string
     {
-        return $this->request->getMethod().' '.$this->request->getRequestUri().' '.$this->request->server('SERVER_ADDR').' '.json_encode($this->request->all()).' '.json_encode($this->request->header());
+        return sprintf(
+            '%s %s %s %s %s',
+            $this->request->getMethod(),
+            $this->request->getRequestUri(),
+            $this->request->server('SERVER_ADDR', 'unknown'),
+            json_encode($this->request->all(), JSON_THROW_ON_ERROR),
+            json_encode($this->request->header(), JSON_THROW_ON_ERROR)
+        );
     }
 }

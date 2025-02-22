@@ -1,68 +1,53 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Aporat\RateLimiter;
 
 use Aporat\RateLimiter\Exceptions\RateLimitException;
-use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Redis;
+use RedisException;
 
 /**
- * Class Middleware.
+ * Rate limiter for requests and actions using Redis as the storage backend.
+ *
+ * This class provides a fluent interface to configure and enforce rate limits based
+ * on IP addresses, user IDs, request details, and custom tags, with optional response headers.
  */
-final class RateLimiter
+class RateLimiter
 {
-    /**
-     * @var string request tag
-     */
-    protected string $request_tag = '';
+    /** @var string Unique tag for the current rate limit context */
+    protected string $requestTag = '';
 
-    /**
-     * @var bool should response contain limit headers
-     */
-    protected bool $rate_limit_headers = false;
+    /** @var bool Whether to include rate limit headers in the response */
+    protected bool $rateLimitHeaders = false;
 
-    /**
-     * @var int seconds for rate limit the action
-     */
-    protected int $interval_seconds = 0;
+    /** @var int Time interval in seconds for the rate limit window */
+    protected int $intervalSeconds = 0;
 
-    /**
-     * @var Request|null
-     */
+    /** @var Request|null The current HTTP request */
     protected ?Request $request = null;
 
-    /**
-     * @var Response|null
-     */
+    /** @var Response|null The response to modify with headers */
     protected ?Response $response = null;
 
-    /**
-     * @var array config options
-     */
-    protected array $config = [];
+    /** @var array Configuration options from config/rate-limiter.php */
+    protected array $config;
+
+    /** @var Redis|null Redis client instance */
+    protected ?Redis $redisClient = null;
+
+    /** @var string[] Headers to inspect for client IP */
+    protected array $headersToInspect = ['X-Forwarded-For'];
 
     /**
-     * @var Redis|null redis client
-     */
-    protected ?Redis $redis_client = null;
-
-    /**
-     * List of proxy headers inspected for the client IP address.
+     * Create a new RateLimiter instance.
      *
-     * @var array
-     */
-    protected array $headersToInspect = [
-        'X-Forwarded-For',
-    ];
-
-    /**
-     *  Create a new rate limiter instance.
-     *
-     * @param array $config
+     * @param array<string, mixed> $config Configuration array from rate-limiter.php
      */
     public function __construct(array $config = [])
     {
@@ -70,9 +55,10 @@ final class RateLimiter
     }
 
     /**
-     * @param string $key
+     * Get a configuration value by key.
      *
-     * @return mixed
+     * @param string $key Configuration key (e.g., 'limits.hourly')
+     * @return mixed The config value or null if not found
      */
     public function getConfigValue(string $key): mixed
     {
@@ -80,406 +66,326 @@ final class RateLimiter
     }
 
     /**
-     * @param string $request_tag
+     * Set the request tag for rate limiting.
      *
-     * @return $this
+     * @param string $requestTag Custom tag for the request
+     * @return self
      */
-    public function setRequestTag(string $request_tag = ''): self
+    public function setRequestTag(string $requestTag = ''): self
     {
-        $this->request_tag = $request_tag;
-
+        $this->requestTag = $requestTag;
         return $this;
     }
 
     /**
-     * @return string request tag
+     * Get the current request tag.
      */
     public function getRequestTag(): string
     {
-        return $this->request_tag;
+        return $this->requestTag;
     }
 
     /**
-     * Limit by action name.
+     * Append a name to the request tag for specific action limiting.
      *
-     * @param string $name unique name of action to rate limit
-     *
+     * @param string $name Unique action name
      * @return self
      */
     public function withName(string $name): self
     {
-        $this->request_tag .= $name.':';
-
+        $this->requestTag .= $name . ':';
         return $this;
     }
 
     /**
-     * Set a PSR-7 Request.
+     * Initialize the limiter with a request.
      *
-     * @param Request $request PSR-7 Request
-     *
+     * @param Request $request The incoming HTTP request
      * @return self
      */
     public function create(Request $request): self
     {
         $this->resetRequest();
         $this->request = $request;
-
         return $this;
     }
 
     /**
-     * Limit by ip address.
+     * Limit requests by client IP address.
      *
      * @return self
      */
     public function withClientIpAddress(): self
     {
-        $ip_address = $this->groupClientIp($this->request->getClientIp());
-
-        $this->request_tag .= $ip_address.':';
-
+        $this->requestTag .= $this->groupClientIp($this->request->getClientIp()) . ':';
         return $this;
     }
 
     /**
-     * Limit by request info.
+     * Limit requests by method and path info.
      *
      * @return self
      */
     public function withRequestInfo(): self
     {
-        $this->request_tag .= $this->request->getMethod().str_replace('/', ':', $this->request->getPathInfo()).':';
-
+        $this->requestTag .= $this->request->getMethod() . str_replace('/', ':', $this->request->getPathInfo()) . ':';
         return $this;
     }
 
     /**
-     * limit by user id.
+     * Limit requests by user ID.
      *
-     * @param string $user_id
-     *
+     * @param string $userId User identifier
      * @return self
      */
-    public function withUserId(string $user_id): self
+    public function withUserId(string $userId): self
     {
-        $this->request_tag .= $user_id.':';
-
+        $this->requestTag .= $userId . ':';
         return $this;
     }
 
     /**
-     * @param int $interval time internal, in seconds
+     * Set the time interval for rate limiting.
      *
+     * @param int $interval Time interval in seconds (default: 3600)
      * @return self
      */
-    public function withTimeInternal(int $interval = 3600): self
+    public function withTimeInterval(int $interval = 3600): self
     {
-        $this->interval_seconds = $interval;
-
+        $this->intervalSeconds = $interval;
         return $this;
     }
 
     /**
-     * set a PSR-7 response.
+     * Attach a response object for header modification.
      *
-     * @param Response $response
-     *
+     * @param Response $response The HTTP response
      * @return self
      */
     public function withResponse(Response $response): self
     {
         $this->response = $response;
-
         return $this;
     }
 
     /**
-     * Set rate limit headers.
+     * Enable or disable rate limit headers in the response.
      *
-     * @param bool $set_headers should rate limit headers be appended to response
-     *
+     * @param bool $setHeaders Whether to set headers (default: true)
      * @return self
      */
-    public function withRateLimitHeaders(bool $set_headers = true): self
+    public function withRateLimitHeaders(bool $setHeaders = true): self
     {
-        $this->rate_limit_headers = $set_headers;
-
+        $this->rateLimitHeaders = $setHeaders;
         return $this;
     }
 
     /**
-     **
-     * @return int
+     * Get the current request count for the tag.
+     *
+     * @throws RedisException If Redis operation fails
      */
     public function count(): int
     {
-        $actions_count = 0;
-
-        try {
-            $actions_count = (int) $this->getRedisClient()->get($this->request_tag);
-        } catch (Exception) {
-            //
-        }
-
-        return $actions_count;
+        return (int) $this->getRedisClient()->get($this->requestTag) ?: 0;
     }
 
     /**
-     * Rate limit a specific action.
+     * Apply rate limiting and return the current count.
      *
-     * @param int $limit  hourly limit
-     * @param int $amount amount of actions executed
-     *
-     * @throws RateLimitException
-     *
-     * @return int
+     * @param int $limit Maximum allowed requests
+     * @param int $amount Number of attempts to record
+     * @return int Current request count
+     * @throws RateLimitException If limit is exceeded
+     * @throws RedisException If Redis operation fails
      */
     public function limit(int $limit = 5000, int $amount = 1): int
     {
-        $action_count = 0;
-
-        if (!empty($this->request_tag)) {
-            $action_count = $this->record($amount);
-
-            if ($action_count > $limit) {
-                throw new RateLimitException('Rate limit exceeded. Please try again later.', $this->request, ['tag' => $this->request_tag, 'limit' => $limit, 'action_count' => $action_count]);
-            }
+        if (empty($this->requestTag)) {
+            return 0;
         }
 
-        return $action_count;
+        $count = $this->record($amount);
+
+        if ($count > $limit) {
+            $debugInfo = ['tag' => $this->requestTag, 'limit' => $limit, 'count' => $count];
+            throw new RateLimitException('Rate limit exceeded. Please try again later.', $this->request, $debugInfo);
+        }
+
+        if ($this->rateLimitHeaders && $this->response) {
+            $this->setHeaders($this->response, $limit, $limit - $count);
+        }
+
+        return $count;
     }
 
     /**
-     * Record the action count to storage.
+     * Record a number of attempts and return the current count.
      *
-     * @param int $amount action amount
-     *
-     * @return int
+     * @param int $amount Number of attempts to record
+     * @return int Current request count
+     * @throws RedisException If Redis operation fails
      */
     public function record(int $amount = 1): int
     {
-        $actions_count = 0;
+        $count = $this->getRedisClient()->incrBy($this->requestTag, $amount);
 
-        try {
-            $actions_count = $this->getRedisClient()->incrby($this->request_tag, $amount);
-        } catch (Exception) {
-            //
+        if ($count === $amount) {
+            $this->getRedisClient()->expireAt($this->requestTag, time() + $this->intervalSeconds);
         }
 
-        // Must be their first visit so let's set the expiration time.
-        if ($amount > 0 && $actions_count == $amount) {
-            $this->getRedisClient()->expireat($this->request_tag, time() + $this->interval_seconds);
-        }
-
-        return $actions_count;
+        return $count;
     }
 
     /**
-     ** clear the request tag.
+     * Clear the rate limit counter for the current tag.
+     *
+     * @throws RedisException If Redis operation fails
      */
     public function clear(): void
     {
-        try {
-            $this->getRedisClient()->del($this->request_tag);
-        } catch (Exception) {
-            //
-        }
+        $this->getRedisClient()->del([$this->requestTag]);
     }
 
     /**
-     * Rate limit a specific action.
+     * Block an IP address for a specified duration.
      *
-     * @param array $actions
-     * @param int   $limit   hourly limit
+     * @param string $ipAddress IP address to block
+     * @param int $secondsToBlock Duration in seconds (default: 24 hours)
+     * @throws RedisException If Redis operation fails
+     */
+    public function blockIpAddress(string $ipAddress, int $secondsToBlock = 86400): void
+    {
+        $ipAddress = $this->groupClientIp($ipAddress);
+        if (empty($ipAddress)) {
+            return;
+        }
+
+        $tag = "blocked:ip:{$ipAddress}";
+        $this->getRedisClient()->set($tag, 'blocked');
+        $this->getRedisClient()->expireAt($tag, time() + $secondsToBlock);
+    }
+
+    /**
+     * Check if the current IP address is blocked.
      *
-     * @throws RateLimitException
-     *
-     * @return int
-     */
-    public function limitActions(array $actions, int $limit = 5000): int
-    {
-        $actions_count = 0;
-
-        if (!empty($this->request_tag)) {
-            $this->recordActions($actions);
-            $actions_count = $this->countActions();
-
-            if ($actions_count > $limit) {
-                throw new RateLimitException('Rate limit exceeded. Please try again later.', $this->request, ['tag' => $this->request_tag, 'limit' => $limit, 'action_count' => $actions_count]);
-            }
-        }
-
-        return $actions_count;
-    }
-
-    /**
-     * @param array $actions
-     *
-     * @return int
-     */
-    public function recordActions(array $actions): int
-    {
-        $actions_count = 0;
-
-        try {
-            $actions_count = $this->getRedisClient()->sadd($this->request_tag, $actions);
-        } catch (Exception) {
-            //
-        }
-
-        $this->getRedisClient()->expireat($this->request_tag, time() + $this->interval_seconds);
-
-        return $actions_count;
-    }
-
-    /**
-     **
-     * @return int
-     */
-    public function countActions(): int
-    {
-        $actions_count = 0;
-
-        try {
-            $actions_count = count($this->getRedisClient()->smembers($this->request_tag));
-        } catch (Exception) {
-            //
-        }
-
-        return $actions_count;
-    }
-
-    /**
-     * @param string $ip_address
-     * @param int    $seconds_to_block
-     */
-    public function blockIpAddress(string $ip_address, int $seconds_to_block = 60 * 60 * 24): void
-    {
-        $ip_address = $this->groupClientIp($ip_address);
-
-        $tag = 'blocked:ip:'.$ip_address;
-
-        if (!empty($ip_address)) {
-            $this->getRedisClient()->set($tag, 'blocked');
-            $this->getRedisClient()->expireat($tag, time() + $seconds_to_block);
-        }
-    }
-
-    /**
-     * @return bool
+     * @return bool True if blocked, false otherwise
+     * @throws RedisException If Redis operation fails
      */
     public function isIpAddressBlocked(): bool
     {
-        $ip_address = $this->request->getClientIp();
-
-        $tag = 'blocked:ip:'.$ip_address;
-
-        if ($this->getRedisClient()->get($tag) == 'blocked') {
-            return true;
+        $ipAddress = $this->request?->getClientIp();
+        if (!$ipAddress) {
+            return false;
         }
 
-        return false;
+        $tag = "blocked:ip:{$ipAddress}";
+        return $this->getRedisClient()->get($tag) === 'blocked';
     }
 
     /**
-     * @throws RateLimitException
+     * Throw an exception if the current IP is blocked.
+     *
+     * @throws RateLimitException If IP is blocked
+     * @throws RedisException If Redis operation fails
      */
     public function checkIpAddress(): void
     {
         if ($this->isIpAddressBlocked()) {
-            $ip_address = $this->request->getClientIp();
-
-            throw new RateLimitException('Rate limit exceeded. Please try again later.', $this->request, ['ip_address' => $ip_address]);
+            throw new RateLimitException(
+                'IP address blocked due to rate limit violation.',
+                $this->request,
+                ['ip_address' => $this->request?->getClientIp()]
+            );
         }
     }
 
     /**
-     * Set the headers to the response.
+     * Set rate limit headers on the response.
      *
-     * @param Response $response
-     * @param int      $total_limit
-     * @param int      $remaining_limit
-     *
-     * @return Response
+     * @param Response $response Response to modify
+     * @param int $totalLimit Total limit
+     * @param int $remainingLimit Remaining requests allowed
+     * @return Response Modified response
      */
-    protected function setHeaders(Response $response, int $total_limit, int $remaining_limit): Response
+    protected function setHeaders(Response $response, int $totalLimit, int $remainingLimit): Response
     {
-        $response->header('X-Rate-Limit-Limit', (string) $total_limit);
-        $response->header('X-Rate-Limit-Remaining', (string) $remaining_limit);
-
-        return $response;
+        return $response->withHeaders([
+            'X-Rate-Limit-Limit' => (string) $totalLimit,
+            'X-Rate-Limit-Remaining' => (string) $remainingLimit,
+        ]);
     }
 
     /**
-     * Resets the request limit options.
+     * Reset request-specific properties to their default state.
      */
     protected function resetRequest(): void
     {
-        $this->request_tag = '';
+        $this->requestTag = '';
         $this->request = null;
         $this->response = null;
-        $this->interval_seconds = 0;
-        $this->rate_limit_headers = false;
+        $this->intervalSeconds = 0;
+        $this->rateLimitHeaders = false;
     }
 
     /**
-     * @param string|null $ip_address
+     * Group IPv6 addresses for consistency in rate limiting.
      *
-     * @return string|null
+     * @param string|null $ipAddress IP address to process
+     * @return string|null Processed IP address
      */
-    protected function groupClientIp(?string $ip_address): ?string
+    protected function groupClientIp(?string $ipAddress): ?string
     {
-        // ipv6 should be grouped
-        if ($ip_address != null && str_contains($ip_address, '::') && substr_count($ip_address, ':') == 4) {
-            $ip_address = Str::substr($ip_address, 0, 9);
+        if ($ipAddress && str_contains($ipAddress, '::') && substr_count($ipAddress, ':') === 4) {
+            return Str::substr($ipAddress, 0, 9);
         }
-
-        return $ip_address;
+        return $ipAddress;
     }
 
     /**
-     * Reset all limits. useful for debugging
-     * not recommended for production use.
-     */
-    public function flushAll(): void
-    {
-        $this->_flushByLookup('*');
-    }
-
-    /**
-     * Flush redis by a specific lookup.
+     * Get or initialize the Redis client.
      *
-     * @param string $lookup lookup key
-     */
-    protected function _flushByLookup(string $lookup): void
-    {
-        $keys = $this->getRedisClient()->keys($lookup);
-
-        $keys_with_no_prefix = [];
-        foreach ($keys as $key) {
-            $key = Str::substr($key, strlen(Arr::get($this->config, 'redis.prefix')));
-            $keys_with_no_prefix[] = $key;
-        }
-
-        if (count($keys_with_no_prefix) > 0) {
-            $this->getRedisClient()->del($keys_with_no_prefix);
-        }
-    }
-
-    /**
-     * @return Redis
+     * @return Redis Configured Redis client
+     * @throws RedisException If connection fails
      */
     protected function getRedisClient(): Redis
     {
-        if ($this->redis_client == null) {
-            $redis_config = Arr::get($this->config, 'redis');
+        if (!$this->redisClient) {
+            $redisConfig = Arr::get($this->config, 'redis', []);
+            $this->redisClient = new Redis();
+            $this->redisClient->connect($redisConfig['host'] ?? '127.0.0.1', $redisConfig['port'] ?? 6379);
+            $this->redisClient->select((int) ($redisConfig['database'] ?? 0));
+            $this->redisClient->setOption(Redis::OPT_PREFIX, ($redisConfig['prefix'] ?? 'rate-limiter') . ':');
+        }
+        return $this->redisClient;
+    }
 
-            $this->redis_client = new Redis();
-            $this->redis_client->connect($redis_config['host'], $redis_config['port']);
-            $this->redis_client->setOption(Redis::OPT_PREFIX, $redis_config['prefix'].':');
+    /**
+     * Flush all rate limiter keys (use with caution, debugging only).
+     *
+     * @throws RedisException If Redis operation fails
+     */
+    public function flushAll(): void
+    {
+        $this->flushByLookup('*');
+    }
+
+    /**
+     * Flush Redis keys matching a lookup pattern.
+     *
+     * @param string $lookup Pattern to match keys (e.g., '*')
+     * @throws RedisException If Redis operation fails
+     */
+    protected function flushByLookup(string $lookup): void
+    {
+        $prefix = Arr::get($this->config, 'redis.prefix', 'rate-limiter') . ':';
+        $keys = $this->getRedisClient()->keys($lookup);
+
+        if (empty($keys)) {
+            return;
         }
 
-        return $this->redis_client;
+        $strippedKeys = array_map(fn (string $key) => Str::after($key, $prefix), $keys);
+        $this->getRedisClient()->del($strippedKeys);
     }
 }
