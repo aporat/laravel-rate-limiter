@@ -22,7 +22,8 @@ final class RateLimit
      * Handle an incoming request and apply rate limiting.
      *
      * @param \Illuminate\Http\Request $request The incoming HTTP request
-     * @param \Closure $next The next middleware in the stack
+     * @param \Closure                 $next    The next middleware in the stack
+     *
      * @return mixed The response after applying rate limits
      */
     public function handle(Request $request, Closure $next): mixed

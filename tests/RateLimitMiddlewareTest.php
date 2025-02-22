@@ -2,12 +2,9 @@
 
 namespace Aporat\RateLimiter\Tests;
 
-use Aporat\RateLimiter\Laravel\Facades\RateLimiter as RateLimiterFacade;
 use Aporat\RateLimiter\Laravel\Middleware\RateLimit;
 use Aporat\RateLimiter\Laravel\RateLimiterServiceProvider;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Config;
-use Mockery;
 use Orchestra\Testbench\TestCase;
 
 class RateLimitMiddlewareTest extends TestCase
@@ -26,5 +23,4 @@ class RateLimitMiddlewareTest extends TestCase
 
         $this->assertEquals('OK', $response->getContent());
     }
-
 }
