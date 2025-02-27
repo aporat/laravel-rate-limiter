@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Aporat\RateLimiter\Laravel\Middleware;
 
+use Aporat\RateLimiter\Exceptions\RateLimitException;
 use Aporat\RateLimiter\Laravel\Facades\RateLimiter;
 use Closure;
 use Illuminate\Http\Request;
@@ -21,10 +22,11 @@ final class RateLimit
     /**
      * Handle an incoming request and apply rate limiting.
      *
-     * @param \Illuminate\Http\Request $request The incoming HTTP request
-     * @param \Closure                 $next    The next middleware in the stack
+     * @param Request $request The incoming HTTP request
+     * @param Closure $next The next middleware in the stack
      *
      * @return mixed The response after applying rate limits
+     * @throws RateLimitException
      */
     public function handle(Request $request, Closure $next): mixed
     {
@@ -48,7 +50,8 @@ final class RateLimit
     /**
      * Apply configured rate limits to the RateLimiter instance.
      *
-     * @param \Aporat\RateLimiter\RateLimiter $limiter The configured RateLimiter instance
+     * @param RateLimiter $limiter The configured RateLimiter instance
+     * @throws RateLimitException
      */
     private function applyRateLimits(RateLimiter $limiter): void
     {

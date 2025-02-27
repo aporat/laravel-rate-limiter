@@ -8,7 +8,7 @@ use Orchestra\Testbench\TestCase;
 
 class RateLimiterServiceProviderTest extends TestCase
 {
-    protected function getPackageProviders($app)
+    protected function getPackageProviders($app): array
     {
         return [RateLimiterServiceProvider::class];
     }
