@@ -47,7 +47,7 @@ class RateLimiter
     /**
      * Create a new RateLimiter instance.
      *
-     * @param array<string, mixed> $config Configuration array from rate-limiter.php
+     * @param  array<string, mixed>  $config  Configuration array from rate-limiter.php
      */
     public function __construct(array $config = [])
     {
@@ -57,8 +57,7 @@ class RateLimiter
     /**
      * Get a configuration value by key.
      *
-     * @param string $key Configuration key (e.g., 'limits.hourly')
-     *
+     * @param  string  $key  Configuration key (e.g., 'limits.hourly')
      * @return mixed The config value or null if not found
      */
     public function getConfigValue(string $key): mixed
@@ -69,9 +68,7 @@ class RateLimiter
     /**
      * Set the request tag for rate limiting.
      *
-     * @param string $requestTag Custom tag for the request
-     *
-     * @return self
+     * @param  string  $requestTag  Custom tag for the request
      */
     public function setRequestTag(string $requestTag = ''): self
     {
@@ -91,9 +88,7 @@ class RateLimiter
     /**
      * Append a name to the request tag for specific action limiting.
      *
-     * @param string $name Unique action name
-     *
-     * @return self
+     * @param  string  $name  Unique action name
      */
     public function withName(string $name): self
     {
@@ -105,9 +100,7 @@ class RateLimiter
     /**
      * Initialize the limiter with a request.
      *
-     * @param Request $request The incoming HTTP request
-     *
-     * @return self
+     * @param  Request  $request  The incoming HTTP request
      */
     public function create(Request $request): self
     {
@@ -119,8 +112,6 @@ class RateLimiter
 
     /**
      * Limit requests by client IP address.
-     *
-     * @return self
      */
     public function withClientIpAddress(): self
     {
@@ -131,8 +122,6 @@ class RateLimiter
 
     /**
      * Limit requests by method and path info.
-     *
-     * @return self
      */
     public function withRequestInfo(): self
     {
@@ -144,9 +133,7 @@ class RateLimiter
     /**
      * Limit requests by user ID.
      *
-     * @param string $userId User identifier
-     *
-     * @return self
+     * @param  string  $userId  User identifier
      */
     public function withUserId(string $userId): self
     {
@@ -158,9 +145,7 @@ class RateLimiter
     /**
      * Set the time interval for rate limiting.
      *
-     * @param int $interval Time interval in seconds (default: 3600)
-     *
-     * @return self
+     * @param  int  $interval  Time interval in seconds (default: 3600)
      */
     public function withTimeInterval(int $interval = 3600): self
     {
@@ -172,9 +157,7 @@ class RateLimiter
     /**
      * Attach a response object for header modification.
      *
-     * @param Response $response The HTTP response
-     *
-     * @return self
+     * @param  Response  $response  The HTTP response
      */
     public function withResponse(Response $response): self
     {
@@ -186,9 +169,7 @@ class RateLimiter
     /**
      * Enable or disable rate limit headers in the response.
      *
-     * @param bool $setHeaders Whether to set headers (default: true)
-     *
-     * @return self
+     * @param  bool  $setHeaders  Whether to set headers (default: true)
      */
     public function withRateLimitHeaders(bool $setHeaders = true): self
     {
@@ -210,13 +191,12 @@ class RateLimiter
     /**
      * Apply rate limiting and return the current count.
      *
-     * @param int $limit  Maximum allowed requests
-     * @param int $amount Number of attempts to record
+     * @param  int  $limit  Maximum allowed requests
+     * @param  int  $amount  Number of attempts to record
+     * @return int Current request count
      *
      * @throws RateLimitException If limit is exceeded
-     * @throws RedisException     If Redis operation fails
-     *
-     * @return int Current request count
+     * @throws RedisException If Redis operation fails
      */
     public function limit(int $limit = 5000, int $amount = 1): int
     {
@@ -242,11 +222,10 @@ class RateLimiter
     /**
      * Record a number of attempts and return the current count.
      *
-     * @param int $amount Number of attempts to record
+     * @param  int  $amount  Number of attempts to record
+     * @return int Current request count
      *
      * @throws RedisException If Redis operation fails
-     *
-     * @return int Current request count
      */
     public function record(int $amount = 1): int
     {
@@ -272,8 +251,8 @@ class RateLimiter
     /**
      * Block an IP address for a specified duration.
      *
-     * @param string $ipAddress      IP address to block
-     * @param int    $secondsToBlock Duration in seconds (default: 24 hours)
+     * @param  string  $ipAddress  IP address to block
+     * @param  int  $secondsToBlock  Duration in seconds (default: 24 hours)
      *
      * @throws RedisException If Redis operation fails
      */
@@ -292,14 +271,14 @@ class RateLimiter
     /**
      * Check if the current IP address is blocked.
      *
-     * @throws RedisException If Redis operation fails
-     *
      * @return bool True if blocked, false otherwise
+     *
+     * @throws RedisException If Redis operation fails
      */
     public function isIpAddressBlocked(): bool
     {
         $ipAddress = $this->request?->getClientIp();
-        if (!$ipAddress) {
+        if (! $ipAddress) {
             return false;
         }
 
@@ -312,7 +291,7 @@ class RateLimiter
      * Throw an exception if the current IP is blocked.
      *
      * @throws RateLimitException If IP is blocked
-     * @throws RedisException     If Redis operation fails
+     * @throws RedisException If Redis operation fails
      */
     public function checkIpAddress(): void
     {
@@ -328,16 +307,15 @@ class RateLimiter
     /**
      * Set rate limit headers on the response.
      *
-     * @param Response $response       Response to modify
-     * @param int      $totalLimit     Total limit
-     * @param int      $remainingLimit Remaining requests allowed
-     *
+     * @param  Response  $response  Response to modify
+     * @param  int  $totalLimit  Total limit
+     * @param  int  $remainingLimit  Remaining requests allowed
      * @return Response Modified response
      */
     protected function setHeaders(Response $response, int $totalLimit, int $remainingLimit): Response
     {
         return $response->withHeaders([
-            'X-Rate-Limit-Limit'     => (string) $totalLimit,
+            'X-Rate-Limit-Limit' => (string) $totalLimit,
             'X-Rate-Limit-Remaining' => (string) $remainingLimit,
         ]);
     }
@@ -357,8 +335,7 @@ class RateLimiter
     /**
      * Group IPv6 addresses for consistency in rate limiting.
      *
-     * @param string|null $ipAddress IP address to process
-     *
+     * @param  string|null  $ipAddress  IP address to process
      * @return string|null Processed IP address
      */
     protected function groupClientIp(?string $ipAddress): ?string
@@ -373,15 +350,15 @@ class RateLimiter
     /**
      * Get or initialize the Redis client.
      *
-     * @throws RedisException If connection fails
-     *
      * @return Redis Configured Redis client
+     *
+     * @throws RedisException If connection fails
      */
     protected function getRedisClient(): Redis
     {
-        if (!$this->redisClient) {
+        if (! $this->redisClient) {
             $redisConfig = Arr::get($this->config, 'redis', []);
-            $this->redisClient = new Redis();
+            $this->redisClient = new Redis;
             $this->redisClient->connect($redisConfig['host'] ?? '127.0.0.1', $redisConfig['port'] ?? 6379);
             $this->redisClient->select((int) ($redisConfig['database'] ?? 0));
             $this->redisClient->setOption(Redis::OPT_PREFIX, ($redisConfig['prefix'] ?? 'rate-limiter').':');
@@ -403,7 +380,7 @@ class RateLimiter
     /**
      * Flush Redis keys matching a lookup pattern.
      *
-     * @param string $lookup Pattern to match keys (e.g., '*')
+     * @param  string  $lookup  Pattern to match keys (e.g., '*')
      *
      * @throws RedisException If Redis operation fails
      */

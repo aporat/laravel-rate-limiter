@@ -18,7 +18,7 @@ class RateLimitMiddlewareTest extends TestCase
     public function test_exempts_internal_ip(): void
     {
         $request = Request::create('/test', 'GET', [], [], [], ['REMOTE_ADDR' => '10.0.1.1']);
-        $middleware = new RateLimit();
+        $middleware = new RateLimit;
         $response = $middleware->handle($request, fn ($req) => response('OK'));
 
         $this->assertEquals('OK', $response->getContent());

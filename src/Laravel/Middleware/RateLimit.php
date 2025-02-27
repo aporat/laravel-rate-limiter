@@ -22,10 +22,10 @@ final class RateLimit
     /**
      * Handle an incoming request and apply rate limiting.
      *
-     * @param Request $request The incoming HTTP request
-     * @param Closure $next The next middleware in the stack
-     *
+     * @param  Request  $request  The incoming HTTP request
+     * @param  Closure  $next  The next middleware in the stack
      * @return mixed The response after applying rate limits
+     *
      * @throws RateLimitException
      */
     public function handle(Request $request, Closure $next): mixed
@@ -50,7 +50,8 @@ final class RateLimit
     /**
      * Apply configured rate limits to the RateLimiter instance.
      *
-     * @param RateLimiter $limiter The configured RateLimiter instance
+     * @param  RateLimiter  $limiter  The configured RateLimiter instance
+     *
      * @throws RateLimitException
      */
     private function applyRateLimits(RateLimiter $limiter): void

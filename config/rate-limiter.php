@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Configuration for the Laravel Rate Limiter package.
  *
@@ -19,9 +20,9 @@ return [
     |
     */
     'limits' => [
-        'hourly'  => 3000, // Max requests per hour
-        'minute'  => 60,   // Max requests per minute
-        'second'  => 10,   // Max requests per second
+        'hourly' => 3000, // Max requests per hour
+        'minute' => 60,   // Max requests per minute
+        'second' => 10,   // Max requests per second
     ],
 
     /*
@@ -34,9 +35,9 @@ return [
     |
     */
     'redis' => [
-        'host'     => env('RATE_LIMITER_REDIS_HOST', '127.0.0.1'),
-        'port'     => env('RATE_LIMITER_REDIS_PORT', 6379),
+        'host' => env('RATE_LIMITER_REDIS_HOST', '127.0.0.1'),
+        'port' => env('RATE_LIMITER_REDIS_PORT', 6379),
         'database' => env('RATE_LIMITER_REDIS_DB', 0),
-        'prefix'   => env('RATE_LIMITER_REDIS_PREFIX', 'rate-limiter:'),
+        'prefix' => env('RATE_LIMITER_REDIS_PREFIX', 'rate-limiter:'),
     ],
 ];

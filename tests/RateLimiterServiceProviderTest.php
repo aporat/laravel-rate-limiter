@@ -39,8 +39,8 @@ class RateLimiterServiceProviderTest extends TestCase
 
         $this->artisan('vendor:publish', [
             '--provider' => RateLimiterServiceProvider::class,
-            '--tag'      => 'config',
-            '--force'    => true,
+            '--tag' => 'config',
+            '--force' => true,
         ]);
 
         $this->assertFileExists($targetPath);
