@@ -1,10 +1,11 @@
 # Laravel Rate Limiter
 
-[![Latest Stable Version](https://img.shields.io/packagist/v/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-rate-limiter)
-[![Latest Dev Version](https://img.shields.io/packagist/vpre/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-rate-limiter#dev-develop)
+[![Latest Stable Version](https://img.shields.io/packagist/v/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/rate-limiter-middleware)
 [![Monthly Downloads](https://img.shields.io/packagist/dm/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-rate-limiter)
-[![Codecov](https://codecov.io/gh/aporat/laravel-rate-limiter/graph/badge.svg?token=N2077WRCUD)](https://codecov.io/gh/aporat/laravel-rate-limiter)
-[![Laravel Version](https://img.shields.io/badge/Laravel-12.x-orange.svg)](https://laravel.com/docs/12.x)
+[![Codecov](https://img.shields.io/codecov/c/github/aporat/laravel-rate-limiter?style=flat-square)](https://codecov.io/github/aporat/laravel-rate-limiter)
+[![Laravel Version](https://img.shields.io/badge/Laravel-12.x-orange.svg?style=flat-square)](https://laravel.com/docs/12.x)
+[![Scrutinizer build (GitHub/Bitbucket)](https://img.shields.io/scrutinizer/build/g/aporat/laravel-rate-limiter?style=flat-square)](https://scrutinizer-ci.com/g/aporat/laravel-rate-limiter/build-status/master)
+[![Scrutinizer quality (GitHub/Bitbucket)](https://img.shields.io/scrutinizer/quality/g/aporat/laravel-rate-limiter?style=flat-square)](https://scrutinizer-ci.com/g/aporat/laravel-rate-limiter/?branch=master)
 [![License](https://img.shields.io/packagist/l/aporat/laravel-rate-limiter.svg?style=flat-square)](https://github.com/aporat/laravel-rate-limiter/blob/master/LICENSE)
 
 A flexible rate limiting middleware for Laravel applications, designed to throttle requests and actions using Redis.

@@ -1,0 +1,9 @@
+build:
+  image: default-bionic
+  services:
+    redis: 4
+  environment:
+    php:
+      version: 8.2.28
+      pecl_extensions:
+        - redis
