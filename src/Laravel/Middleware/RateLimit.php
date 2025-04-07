@@ -64,7 +64,7 @@ final class RateLimit
 
         foreach ($limits as $name => $settings) {
             if ($settings['limit'] > 0) {
-                $limiter->withName("requests:{$name}")
+                $limiter->withName("requests:$name")
                     ->withTimeInterval($settings['interval'])
                     ->limit($settings['limit']);
             }

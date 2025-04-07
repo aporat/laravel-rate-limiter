@@ -21,7 +21,7 @@ class RateLimiterServiceProvider extends ServiceProvider implements DeferrablePr
      *
      * @var string
      */
-    private const CONFIG_PATH = __DIR__.'/../../config/rate-limiter.php';
+    private const string CONFIG_PATH = __DIR__.'/../../config/rate-limiter.php';
 
     /**
      * Register services in the container.
