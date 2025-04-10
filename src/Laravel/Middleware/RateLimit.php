@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Aporat\RateLimiter\Laravel\Middleware;
 
 use Aporat\RateLimiter\Exceptions\RateLimitException;
+use Aporat\RateLimiter\RateLimiter as RateLimiterService;
 use Aporat\RateLimiter\Laravel\Facades\RateLimiter;
 use Closure;
 use Illuminate\Http\Request;
@@ -50,11 +51,11 @@ final class RateLimit
     /**
      * Apply configured rate limits to the RateLimiter instance.
      *
-     * @param  RateLimiter  $limiter  The configured RateLimiter instance
+     * @param  RateLimiterService  $limiter  The configured RateLimiter instance
      *
      * @throws RateLimitException
      */
-    private function applyRateLimits(RateLimiter $limiter): void
+    private function applyRateLimits(RateLimiterService $limiter): void
     {
         $limits = [
             'hourly' => ['limit' => config('rate-limiter.limits.hourly', 0), 'interval' => 3600],

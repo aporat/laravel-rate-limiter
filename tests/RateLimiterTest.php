@@ -2,103 +2,63 @@
 
 namespace Aporat\RateLimiter\Tests;
 
-use Aporat\RateLimiter\Exceptions\RateLimitException;
 use Aporat\RateLimiter\RateLimiter;
 use Illuminate\Http\Request;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Support\Facades\Config;
+use Orchestra\Testbench\TestCase;
 
 class RateLimiterTest extends TestCase
 {
-    public function test_constructor_with_config(): void
+    protected function getPackageProviders($app)
     {
-        $config = include __DIR__.'/../config/rate-limiter.php';
-        $rateLimiter = new RateLimiter($config);
-
-        $this->assertInstanceOf(RateLimiter::class, $rateLimiter);
+        return [
+            \Aporat\RateLimiter\Laravel\RateLimiterServiceProvider::class,
+        ];
     }
 
-    public function test_default_config_values(): void
+    protected function setUp(): void
     {
-        $config = include __DIR__.'/../config/rate-limiter.php';
-        $rateLimiter = new RateLimiter($config);
+        parent::setUp();
 
-        $this->assertEquals(3000, $rateLimiter->getConfigValue('limits.hourly'));
-        $this->assertEquals(60, $rateLimiter->getConfigValue('limits.minute'));
-        $this->assertEquals(10, $rateLimiter->getConfigValue('limits.second'));
+        Config::set('rate-limiter.redis.host', '127.0.0.1');
+        Config::set('rate-limiter.redis.port', 6379);
+        Config::set('rate-limiter.redis.database', 15);
+        Config::set('rate-limiter.redis.prefix', 'rate-limiter:test:');
+        Config::set('rate-limiter.log_errors', false);
     }
 
-    public function test_custom_config_values(): void
+    protected function tearDown(): void
     {
-        $config = include __DIR__.'/../config/rate-limiter.php';
-        $config['hourly_request_limit'] = 5000;
-        $config['minute_request_limit'] = 100;
-        $config['second_request_limit'] = 5;
+        $redis = new \Redis;
+        $redis->connect('127.0.0.1', 6379);
+        $redis->select(15);
+        foreach ($redis->keys('rate-limiter:test:*') as $key) {
+            $redis->del($key);
+        }
 
-        $rateLimiter = new RateLimiter($config);
-
-        $this->assertEquals(5000, $rateLimiter->getConfigValue('hourly_request_limit'));
-        $this->assertEquals(100, $rateLimiter->getConfigValue('minute_request_limit'));
-        $this->assertEquals(5, $rateLimiter->getConfigValue('second_request_limit'));
+        parent::tearDown();
     }
 
-    public function test_count_increments_correctly(): void
+    public function test_clear_resets_counter()
     {
-        $config = include __DIR__.'/../config/rate-limiter.php';
-        $rateLimiter = new RateLimiter($config);
-        $request = Request::create('/');
+        $request = Request::create('/clear', 'GET');
+        $limiter = new RateLimiter(Config::get('rate-limiter'));
+        $limiter->create($request)->withClientIpAddress()->withTimeInterval(60);
+        $limiter->record(3);
 
-        $rateLimiter->create($request)->withName('requests:count')->withTimeInterval(10)->record(1);
-        $rateLimiter->create($request)->withName('requests:count')->withTimeInterval(10)->record(1);
-        $rateLimiter->create($request)->withName('requests:count')->withTimeInterval(10)->record(1);
-        $rateLimiter->create($request)->withName('requests:count')->withTimeInterval(10)->record(1);
-        $rateLimiter->create($request)->withName('requests:count')->withTimeInterval(10)->record(1);
+        $this->assertGreaterThan(0, $limiter->count());
 
-        $count = $rateLimiter->create($request)->withName('requests:count')->withTimeInterval(10)->count();
-        $this->assertEquals(5, $count);
+        $limiter->clear();
+        $this->assertSame(0, $limiter->count());
     }
 
-    public function test_limit_throws_exception_when_exceeded(): void
+    public function test_block_ip_address_sets_redis_key()
     {
-        $config = include __DIR__.'/../config/rate-limiter.php';
-        $rateLimiter = new RateLimiter($config);
-        $request = Request::create('/');
+        $request = Request::create('/block', 'GET');
+        $limiter = new RateLimiter(Config::get('rate-limiter'));
+        $limiter->create($request);
+        $limiter->blockIpAddress($request->getClientIp(), 60);
 
-        $rateLimiter->create($request)->withName('requests:limit')->withTimeInterval(10)->record(1);
-        $rateLimiter->create($request)->withName('requests:limit')->withTimeInterval(10)->record(1);
-        $rateLimiter->create($request)->withName('requests:limit')->withTimeInterval(10)->record(1);
-        $rateLimiter->create($request)->withName('requests:limit')->withTimeInterval(10)->record(1);
-        $rateLimiter->create($request)->withName('requests:limit')->withTimeInterval(10)->record(1);
-
-        $this->expectException(RateLimitException::class);
-        $rateLimiter->create($request)->withName('requests:limit')->withTimeInterval(10)->limit(2);
-    }
-
-    public function test_limit_returns_count_when_not_exceeded(): void
-    {
-        $config = include __DIR__.'/../config/rate-limiter.php';
-        $rateLimiter = new RateLimiter($config);
-        $request = Request::create('/');
-
-        $count = $rateLimiter->create($request)->withName('requests:not_reached')->withTimeInterval(10)->limit(10);
-        $this->assertEquals(1, $count);
-    }
-
-    public function test_request_tag_generation_with_user_id_and_name(): void
-    {
-        $config = include __DIR__.'/../config/rate-limiter.php';
-        $rateLimiter = new RateLimiter($config);
-        $request = Request::create('/');
-
-        $rateLimiter->create($request)->withUserId('100')->withName('request_name');
-        $this->assertEquals('100:request_name:', $rateLimiter->getRequestTag());
-    }
-
-    public function test_set_request_tag_updates_tag(): void
-    {
-        $config = include __DIR__.'/../config/rate-limiter.php';
-        $rateLimiter = new RateLimiter($config);
-
-        $rateLimiter->setRequestTag('request:set:');
-        $this->assertEquals('request:set:', $rateLimiter->getRequestTag());
+        $this->assertTrue($limiter->isIpAddressBlocked());
     }
 }

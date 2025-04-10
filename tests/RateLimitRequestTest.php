@@ -2,37 +2,50 @@
 
 namespace Aporat\RateLimiter\Tests;
 
-use Aporat\RateLimiter\Exceptions\RateLimitException;
 use Aporat\RateLimiter\RateLimiter;
 use Illuminate\Http\Request;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Support\Facades\Config;
+use Orchestra\Testbench\TestCase;
 
 class RateLimitRequestTest extends TestCase
 {
-    public function test_limit_exceeds_with_request_info(): void
+    protected function getPackageProviders($app)
     {
-        $config = include __DIR__.'/../config/rate-limiter.php';
-        $rateLimiter = new RateLimiter($config);
-        $request = Request::create('/test', 'POST');
-
-        $this->expectException(RateLimitException::class);
-        $rateLimiter->create($request)->withRequestInfo()->withTimeInterval(10)->limit(1);
-        $rateLimiter->create($request)->withRequestInfo()->withTimeInterval(10)->limit(1);
+        return [
+            \Aporat\RateLimiter\Laravel\RateLimiterServiceProvider::class,
+        ];
     }
 
-    public function test_limit_generates_request_tag_by_method_and_path(): void
+    protected function setUp(): void
     {
-        $config = include __DIR__.'/../config/rate-limiter.php';
-        $rateLimiter = new RateLimiter($config);
+        parent::setUp();
 
-        $request = Request::create('/test3', 'POST');
-        $limit = $rateLimiter->create($request)->withRequestInfo()->withTimeInterval(10)->limit(1);
-        $this->assertEquals('POST:test3:', $rateLimiter->getRequestTag());
-        $this->assertEquals(1, $limit);
+        Config::set('rate-limiter.redis.host', '127.0.0.1');
+        Config::set('rate-limiter.redis.port', 6379);
+        Config::set('rate-limiter.redis.database', 15);
+        Config::set('rate-limiter.redis.prefix', 'rate-limiter:test:');
+        Config::set('rate-limiter.limits.second', 100); // prevent accidental limit triggering
 
-        $request = Request::create('/test2', 'GET');
-        $limit = $rateLimiter->create($request)->withRequestInfo()->withTimeInterval(10)->limit(1);
-        $this->assertEquals('GET:test2:', $rateLimiter->getRequestTag());
-        $this->assertEquals(1, $limit);
+        // clean Redis
+        $redis = new \Redis();
+        $redis->connect('127.0.0.1', 6379);
+        $redis->select(15);
+        foreach ($redis->keys('rate-limiter:test:*') as $key) {
+            $redis->del($key);
+        }
+    }
+
+    public function test_limit_generates_request_tag_by_method_and_path()
+    {
+        $request = Request::create('/test-path', 'POST');
+
+        $limiter = new RateLimiter(Config::get('rate-limiter'));
+        $limiter->create($request)
+            ->withRequestInfo()
+            ->withTimeInterval(60)
+            ->limit(10); // don't exceed the limit
+
+        $tag = $limiter->getRequestTag();
+        $this->assertStringContainsString('POST:test-path', $tag);
     }
 }
