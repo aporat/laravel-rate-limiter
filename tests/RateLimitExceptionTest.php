@@ -39,7 +39,7 @@ class RateLimitExceptionTest extends TestCase
 
     public function test_get_status_code_returns_429()
     {
-        $exception = new RateLimitException();
+        $exception = new RateLimitException;
         $this->assertEquals(429, $exception->getStatusCode());
     }
 

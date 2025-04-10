@@ -27,7 +27,7 @@ class RateLimitRequestTest extends TestCase
         Config::set('rate-limiter.limits.second', 100); // prevent accidental limit triggering
 
         // clean Redis
-        $redis = new \Redis();
+        $redis = new \Redis;
         $redis->connect('127.0.0.1', 6379);
         $redis->select(15);
         foreach ($redis->keys('rate-limiter:test:*') as $key) {

@@ -46,7 +46,7 @@ class RateLimitMiddlewareTest extends TestCase
 
     public function test_middleware_allows_request_under_limit()
     {
-        $middleware = new RateLimit();
+        $middleware = new RateLimit;
         $request = Request::create('/test', 'GET');
         $request->server->set('REMOTE_ADDR', '127.0.0.1');
 
@@ -56,7 +56,7 @@ class RateLimitMiddlewareTest extends TestCase
 
     public function test_middleware_blocks_request_over_limit()
     {
-        $middleware = new RateLimit();
+        $middleware = new RateLimit;
         $request = Request::create('/test', 'GET');
         $request->server->set('REMOTE_ADDR', '127.0.0.1');
 
@@ -64,5 +64,4 @@ class RateLimitMiddlewareTest extends TestCase
         $this->expectException(RateLimitException::class);
         $middleware->handle($request, fn () => new Response('Too Many'));
     }
-
 }

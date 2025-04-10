@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Aporat\RateLimiter\Laravel\Middleware;
 
 use Aporat\RateLimiter\Exceptions\RateLimitException;
-use Aporat\RateLimiter\RateLimiter as RateLimiterService;
 use Aporat\RateLimiter\Laravel\Facades\RateLimiter;
+use Aporat\RateLimiter\RateLimiter as RateLimiterService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
