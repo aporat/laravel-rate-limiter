@@ -25,6 +25,8 @@ return [
         'second' => 10,   // Max requests per second
     ],
 
+    'log_errors' => true, // Set to false to disable logging
+
     /*
     |--------------------------------------------------------------------------
     | Redis Configuration

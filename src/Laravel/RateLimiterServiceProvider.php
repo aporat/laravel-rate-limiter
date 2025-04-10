@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Aporat\RateLimiter\Laravel;
 
+use Aporat\RateLimiter\Laravel\Middleware\RateLimit;
 use Aporat\RateLimiter\RateLimiter;
 use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
@@ -38,6 +39,10 @@ class RateLimiterServiceProvider extends ServiceProvider implements DeferrablePr
     public function boot(): void
     {
         $this->publishes([self::CONFIG_PATH => config_path('rate-limiter.php')], 'config');
+
+        // Register the middleware alias
+        $router = $this->app['router'];
+        $router->aliasMiddleware('rate.limiter', RateLimit::class);
     }
 
     /**

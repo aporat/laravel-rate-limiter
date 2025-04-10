@@ -1,6 +1,6 @@
 # Laravel Rate Limiter
 
-[![Latest Stable Version](https://img.shields.io/packagist/v/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/rate-limiter-middleware)
+[![Latest Stable Version](https://img.shields.io/packagist/v/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-rate-limiter)
 [![Monthly Downloads](https://img.shields.io/packagist/dm/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-rate-limiter)
 [![Codecov](https://img.shields.io/codecov/c/github/aporat/laravel-rate-limiter?style=flat-square)](https://codecov.io/github/aporat/laravel-rate-limiter)
 [![Laravel Version](https://img.shields.io/badge/Laravel-12.x-orange.svg?style=flat-square)](https://laravel.com/docs/12.x)
@@ -61,10 +61,11 @@ Edit `config/rate-limiter.php` to adjust limits and Redis settings:
 ```php
 return [
     'limits' => [
-        'hourly' => 3000, // Max requests per hour
-        'minute' => 60,   // Max requests per minute
-        'second' => 10,   // Max requests per second
+        'hourly' => 3000,
+        'minute' => 60,
+        'second' => 10,
     ],
+    'log_errors' => true, // Set to false to disable logging of rate limit violations
     'redis' => [
         'host' => env('RATE_LIMITER_REDIS_HOST', '127.0.0.1'),
         'port' => env('RATE_LIMITER_REDIS_PORT', 6379),
@@ -72,6 +73,7 @@ return [
         'prefix' => env('RATE_LIMITER_REDIS_PREFIX', 'rate-limiter:'),
     ],
 ];
+
 ```
 
 Add these to your `.env` file if needed:

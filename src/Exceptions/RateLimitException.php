@@ -61,6 +61,10 @@ class RateLimitException extends Exception
      */
     public function report(): void
     {
+        if (! config('rate-limiter.log_errors')) {
+            return;
+        }
+
         $messageParts = [
             get_class($this).': '.$this->getMessage(),
         ];
