@@ -56,22 +56,27 @@ jobs:
             - name: Install Dependencies
               uses: ramsey/composer-install@v3
 
-            - name: Execute linter
-              run: composer check
-
             - name: Execute tests (Unit and Feature tests) via PHPUnit
               if: matrix.coverage == 'none'
               run: composer test
+
+            - name: Run code style check
+              if: matrix.coverage == 'xdebug'
+              run: composer check
+
+            - name: Run code analyze
+              if: matrix.coverage == 'xdebug'
+              run: composer analyze
 
             - name: Execute tests (Unit and Feature tests) via PHPUnit
               if: matrix.coverage == 'xdebug'
               run: composer test-ci
 
             - name: Upload coverage reports to Codecov
+              if: matrix.coverage == 'xdebug'
               uses: codecov/codecov-action@v5
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
-                  if: matrix.coverage == 'xdebug'
                   slug: ${{ github.repository }}
 
             - name: Upload test results to Codecov

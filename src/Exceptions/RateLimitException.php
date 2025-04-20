@@ -23,6 +23,8 @@ class RateLimitException extends Exception
 
     /**
      * Additional debug information to include in the log.
+     *
+     * @var array<string, mixed>
      */
     protected ?array $debugInfo;
 
@@ -36,7 +38,7 @@ class RateLimitException extends Exception
      *
      * @param  string|null  $message  The exception message (defaults to "Too Many Requests")
      * @param  Request|null  $request  The request triggering the limit
-     * @param  array|null  $debugInfo  Additional debug data to log
+     * @param  array<string, mixed>|null  $debugInfo  Additional debug data to log
      * @param  bool  $traceReporting  Whether to log the stack trace
      */
     public function __construct(?string $message = 'Too Many Requests', ?Request $request = null, ?array $debugInfo = null, bool $traceReporting = false)

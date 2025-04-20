@@ -35,7 +35,7 @@ class RateLimiter
     /** @var Response|null The response to modify with headers */
     protected ?Response $response = null;
 
-    /** @var array Configuration options from config/rate-limiter.php */
+    /** @var array<string, mixed> Configuration options from config/rate-limiter.php */
     protected array $config;
 
     /** @var Redis|null Redis client instance */
