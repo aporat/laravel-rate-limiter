@@ -2,10 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Aporat\RateLimiter\Laravel;
+namespace Aporat\RateLimiter;
 
-use Aporat\RateLimiter\Laravel\Middleware\RateLimit;
-use Aporat\RateLimiter\RateLimiter;
+use Aporat\RateLimiter\Middleware\RateLimit;
 use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,7 +21,7 @@ class RateLimiterServiceProvider extends ServiceProvider implements DeferrablePr
      *
      * @var string
      */
-    private const string CONFIG_PATH = __DIR__.'/../../config/rate-limiter.php';
+    private const string CONFIG_PATH = __DIR__.'/../config/rate-limiter.php';
 
     /**
      * Register services in the container.

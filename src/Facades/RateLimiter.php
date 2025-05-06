@@ -1,6 +1,6 @@
 <?php
 
-namespace Aporat\RateLimiter\Laravel\Facades;
+namespace Aporat\RateLimiter\Facades;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;

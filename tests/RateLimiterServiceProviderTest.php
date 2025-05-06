@@ -2,8 +2,8 @@
 
 namespace Aporat\RateLimiter\Tests;
 
-use Aporat\RateLimiter\Laravel\RateLimiterServiceProvider;
 use Aporat\RateLimiter\RateLimiter;
+use Aporat\RateLimiter\RateLimiterServiceProvider;
 use Orchestra\Testbench\TestCase;
 
 class RateLimiterServiceProviderTest extends TestCase

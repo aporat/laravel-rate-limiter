@@ -43,7 +43,7 @@ Optionally, register the facade for cleaner syntax:
 ```php
 'aliases' => [
     // ...
-    'RateLimiter' => Aporat\RateLimiter\Laravel\Facades\RateLimiter::class,
+    'RateLimiter' => \Aporat\RateLimiter\Facades\RateLimiter::class,
 ],
 ```
 

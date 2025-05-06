@@ -3,9 +3,9 @@
 namespace Aporat\RateLimiter\Tests;
 
 use Aporat\RateLimiter\Exceptions\RateLimitException;
-use Aporat\RateLimiter\Laravel\Middleware\RateLimit;
-use Aporat\RateLimiter\Laravel\RateLimiterServiceProvider;
+use Aporat\RateLimiter\Middleware\RateLimit;
 use Aporat\RateLimiter\RateLimiter;
+use Aporat\RateLimiter\RateLimiterServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Config;

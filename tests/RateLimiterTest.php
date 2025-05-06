@@ -3,6 +3,7 @@
 namespace Aporat\RateLimiter\Tests;
 
 use Aporat\RateLimiter\RateLimiter;
+use Aporat\RateLimiter\RateLimiterServiceProvider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
 use Orchestra\Testbench\TestCase;
@@ -12,7 +13,7 @@ class RateLimiterTest extends TestCase
     protected function getPackageProviders($app)
     {
         return [
-            \Aporat\RateLimiter\Laravel\RateLimiterServiceProvider::class,
+            RateLimiterServiceProvider::class,
         ];
     }
 
