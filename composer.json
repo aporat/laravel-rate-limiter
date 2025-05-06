@@ -56,10 +56,10 @@
     "extra": {
         "laravel": {
             "providers": [
-                "Aporat\\RateLimiter\\Laravel\\RateLimiterServiceProvider"
+                "Aporat\\RateLimiter\\RateLimiterServiceProvider"
             ],
             "aliases": {
-                "RateLimiter": "Aporat\\RateLimiter\\Laravel\\Facades\\RateLimiter"
+                "RateLimiter": "Aporat\\RateLimiter\\Facades\\RateLimiter"
             }
         }
     },
