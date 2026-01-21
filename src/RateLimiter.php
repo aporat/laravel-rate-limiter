@@ -232,7 +232,7 @@ class RateLimiter
         $count = $this->getRedisClient()->incrBy($this->requestTag, $amount);
 
         if ($count === $amount) {
-            $this->getRedisClient()->expireAt($this->requestTag, time() + $this->intervalSeconds);
+            $this->getRedisClient()->expire($this->requestTag, $this->intervalSeconds);
         }
 
         return $count;
@@ -264,8 +264,7 @@ class RateLimiter
         }
 
         $tag = "blocked:ip:{$ipAddress}";
-        $this->getRedisClient()->set($tag, 'blocked');
-        $this->getRedisClient()->expireAt($tag, time() + $secondsToBlock);
+        $this->getRedisClient()->setex($tag, $secondsToBlock, 'blocked');
     }
 
     /**
@@ -282,6 +281,7 @@ class RateLimiter
             return false;
         }
 
+        $ipAddress = $this->groupClientIp($ipAddress);
         $tag = "blocked:ip:{$ipAddress}";
 
         return $this->getRedisClient()->get($tag) === 'blocked';
@@ -333,15 +333,28 @@ class RateLimiter
     }
 
     /**
-     * Group IPv6 addresses for consistency in rate limiting.
+     * Group IPv6 addresses by /64 prefix for consistency in rate limiting.
+     * IPv4 addresses are returned unchanged.
      *
      * @param  string|null  $ipAddress  IP address to process
-     * @return string|null Processed IP address
+     * @return string|null Processed IP address (IPv6 grouped by /64 prefix)
      */
     protected function groupClientIp(?string $ipAddress): ?string
     {
-        if ($ipAddress && str_contains($ipAddress, '::') && substr_count($ipAddress, ':') === 4) {
-            return Str::substr($ipAddress, 0, 9);
+        if ($ipAddress && filter_var($ipAddress, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            // Get binary representation (16 bytes for IPv6)
+            $binary = @inet_pton($ipAddress);
+            if ($binary !== false) {
+                // Take first 8 bytes (64 bits / /64 prefix)
+                $prefix = substr($binary, 0, 8);
+                // Pad with zeros to make it a valid IPv6 address
+                $prefix = str_pad($prefix, 16, "\0");
+                // Convert back to string representation
+                $grouped = @inet_ntop($prefix);
+                if ($grouped !== false) {
+                    return $grouped;
+                }
+            }
         }
 
         return $ipAddress;
