@@ -54,7 +54,7 @@ jobs:
                   key: ${{ matrix.os }}-${{ matrix.php }}-${{ matrix.laravel }}-vendor-${{ hashFiles('**/composer.lock') }}
 
             - name: Install Dependencies
-              uses: ramsey/composer-install@v3
+              uses: ramsey/composer-install@v4
 
             - name: Execute tests (Unit and Feature tests) via PHPUnit
               if: matrix.coverage == 'none'
