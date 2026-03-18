@@ -23,7 +23,7 @@ class RateLimiterExceptionTriggerTest extends TestCase
     protected function tearDown(): void
     {
         // Clean up Redis keys after test
-        $redis = new \Redis;
+        $redis = new Redis;
         $redis->connect('127.0.0.1', 6379);
         $redis->select(15);
         foreach ($redis->keys('test-rate-limiter*') as $key) {
