@@ -3,7 +3,7 @@
 [![Latest Stable Version](https://img.shields.io/packagist/v/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-rate-limiter)
 [![Downloads](https://img.shields.io/packagist/dt/aporat/laravel-rate-limiter.svg?style=flat-square&logo=composer)](https://packagist.org/packages/aporat/laravel-rate-limiter)
 [![Codecov](https://img.shields.io/codecov/c/github/aporat/laravel-rate-limiter?style=flat-square)](https://codecov.io/github/aporat/laravel-rate-limiter)
-[![Laravel Version](https://img.shields.io/badge/Laravel-12.x-orange.svg?style=flat-square)](https://laravel.com/docs/12.x)
+[![Laravel Version](https://img.shields.io/badge/Laravel-13.x-orange.svg?style=flat-square)](https://laravel.com/docs/13.x)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/aporat/laravel-rate-limiter/ci.yml?style=flat-square)
 [![License](https://img.shields.io/packagist/l/aporat/laravel-rate-limiter.svg?style=flat-square)](https://github.com/aporat/laravel-rate-limiter/blob/master/LICENSE)
 
@@ -18,7 +18,7 @@ A flexible rate limiting middleware for Laravel applications, designed to thrott
 
 ## Requirements
 - **PHP**: 8.4 or higher
-- **Laravel**: 10.x, 11.x or 12.x
+- **Laravel**: 12.x or 13.x
 - **Redis**: Required for storage (ext-redis extension)
 - **Composer**: Required for installation
 
