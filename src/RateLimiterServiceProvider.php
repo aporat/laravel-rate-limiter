@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace Aporat\RateLimiter;
 
 use Aporat\RateLimiter\Middleware\RateLimit;
-use Illuminate\Contracts\Support\DeferrableProvider;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -13,13 +14,15 @@ use Illuminate\Support\ServiceProvider;
  *
  * Registers the RateLimiter service as a singleton and manages configuration
  * merging and publishing for rate limiting functionality.
+ *
+ * This provider is intentionally not deferred: a deferred provider only boots when
+ * one of its `provides()` bindings is resolved, which would mean the middleware
+ * alias and the publishable config were registered too late (or never).
  */
-class RateLimiterServiceProvider extends ServiceProvider implements DeferrableProvider
+class RateLimiterServiceProvider extends ServiceProvider
 {
     /**
      * Path to the package's configuration file.
-     *
-     * @var string
      */
     private const string CONFIG_PATH = __DIR__.'/../config/rate-limiter.php';
 
@@ -29,7 +32,12 @@ class RateLimiterServiceProvider extends ServiceProvider implements DeferrablePr
     public function register(): void
     {
         $this->mergeConfigFrom(self::CONFIG_PATH, 'rate-limiter');
-        $this->registerRateLimiterService();
+
+        $this->app->singleton(RateLimiter::class, fn (Application $app) => new RateLimiter(
+            (array) $app['config']->get('rate-limiter', [])
+        ));
+
+        $this->app->alias(RateLimiter::class, 'rate-limiter');
     }
 
     /**
@@ -37,19 +45,13 @@ class RateLimiterServiceProvider extends ServiceProvider implements DeferrablePr
      */
     public function boot(): void
     {
-        $this->publishes([self::CONFIG_PATH => config_path('rate-limiter.php')], 'config');
+        if ($this->app->runningInConsole()) {
+            $this->publishes([self::CONFIG_PATH => config_path('rate-limiter.php')], 'config');
+        }
 
-        // Register the middleware alias
+        /** @var Router $router */
         $router = $this->app['router'];
         $router->aliasMiddleware('rate.limiter', RateLimit::class);
-    }
-
-    /**
-     * Register the RateLimiter singleton in the container.
-     */
-    protected function registerRateLimiterService(): void
-    {
-        $this->app->singleton('rate-limiter', fn ($app) => new RateLimiter($app['config']['rate-limiter']));
     }
 
     /**
@@ -59,6 +61,6 @@ class RateLimiterServiceProvider extends ServiceProvider implements DeferrablePr
      */
     public function provides(): array
     {
-        return ['rate-limiter'];
+        return [RateLimiter::class, 'rate-limiter'];
     }
 }

@@ -1,23 +1,53 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Aporat\RateLimiter\Tests;
 
 use Aporat\RateLimiter\Exceptions\RateLimitException;
-use Aporat\RateLimiter\RateLimiter;
 use Illuminate\Http\Request;
-use PHPUnit\Framework\TestCase;
 
 class BlockIPAddressTest extends TestCase
 {
-    public function test_block_ip_address_triggers_exception(): void
+    public function test_blocked_ip_is_detected_and_throws(): void
     {
-        $config = include __DIR__.'/../config/rate-limiter.php';
-        $rateLimiter = new RateLimiter($config);
-        $request = Request::create('/');
+        $request = Request::create('/', 'GET', [], [], [], ['REMOTE_ADDR' => '203.0.113.7']);
+        $limiter = $this->limiter();
 
-        $rateLimiter->blockIpAddress($request->getClientIp(), 10);
+        $limiter->blockIpAddress('203.0.113.7', 10);
+
+        $this->assertTrue($limiter->create($request)->isIpAddressBlocked());
 
         $this->expectException(RateLimitException::class);
-        $rateLimiter->create($request)->checkIpAddress();
+        $limiter->create($request)->checkIpAddress();
+    }
+
+    public function test_unblock_lifts_the_block(): void
+    {
+        $request = Request::create('/', 'GET', [], [], [], ['REMOTE_ADDR' => '203.0.113.8']);
+        $limiter = $this->limiter();
+
+        $limiter->blockIpAddress('203.0.113.8', 60);
+        $this->assertTrue($limiter->create($request)->isIpAddressBlocked());
+
+        $limiter->unblockIpAddress('203.0.113.8');
+        $this->assertFalse($limiter->create($request)->isIpAddressBlocked());
+    }
+
+    public function test_ipv6_blocks_cover_the_whole_64_prefix(): void
+    {
+        $limiter = $this->limiter();
+        $limiter->blockIpAddress('2001:db8:9:9:aaaa::1', 60);
+
+        $neighbour = Request::create('/', 'GET', [], [], [], ['REMOTE_ADDR' => '2001:db8:9:9:ffff::2']);
+        $stranger = Request::create('/', 'GET', [], [], [], ['REMOTE_ADDR' => '2001:db8:9:10::2']);
+
+        $this->assertTrue($limiter->create($neighbour)->isIpAddressBlocked());
+        $this->assertFalse($limiter->create($stranger)->isIpAddressBlocked());
+    }
+
+    public function test_unknown_ip_is_never_blocked(): void
+    {
+        $this->assertFalse($this->limiter()->isIpAddressBlocked());
     }
 }

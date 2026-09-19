@@ -25,8 +25,9 @@
         "php": "^8.4",
         "ext-json": "*",
         "ext-redis": "*",
+        "illuminate/http": "^12.0 || ^13.0",
         "illuminate/support": "^12.0 || ^13.0",
-        "illuminate/http": "^12.0 || ^13.0"
+        "symfony/http-foundation": "^7.0 || ^8.0"
     },
     "require-dev": {
         "laravel/pint": "^1.21",
@@ -57,17 +58,14 @@
         "laravel": {
             "providers": [
                 "Aporat\\RateLimiter\\RateLimiterServiceProvider"
-            ],
-            "aliases": {
-                "RateLimiter": "Aporat\\RateLimiter\\Facades\\RateLimiter"
-            }
+            ]
         }
     },
     "scripts": {
         "test": "phpunit --colors=always",
         "test-ci": "phpunit --colors=always --coverage-text --coverage-clover coverage.xml --log-junit junit.xml",
         "check": "vendor/bin/pint --test",
-        "analyze": "phpstan analyse src --level=6 --memory-limit=-1"
+        "analyze": "vendor/bin/phpstan analyse src tests --level=6 --memory-limit=-1"
     },
     "support": {
         "issues": "https://github.com/aporat/laravel-rate-limiter/issues",

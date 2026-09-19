@@ -29,34 +29,32 @@ Install the package via [Composer](https://getcomposer.org/):
 composer require aporat/laravel-rate-limiter
 ```
 
-The service provider (`RateLimiterServiceProvider`) is automatically registered via Laravel’s package discovery. If auto-discovery is disabled, add it to `config/app.php`:
+`RateLimiterServiceProvider` is registered automatically via Laravel's package
+discovery. If auto-discovery is disabled, add it to `bootstrap/providers.php`:
 
 ```php
-'providers' => [
+return [
     // ...
-    Aporat\RateLimiter\Laravel\RateLimiterServiceProvider::class,
-],
+    Aporat\RateLimiter\RateLimiterServiceProvider::class,
+];
 ```
 
-Optionally, register the facade for cleaner syntax:
+The package deliberately does **not** register a `RateLimiter` class alias, because
+that name is taken by Laravel's own `Illuminate\Support\Facades\RateLimiter`.
+Import this package's facade by its full name instead:
 
 ```php
-'aliases' => [
-    // ...
-    'RateLimiter' => \Aporat\RateLimiter\Facades\RateLimiter::class,
-],
+use Aporat\RateLimiter\Facades\RateLimiter;
 ```
 
 Publish the configuration file:
 
 ```bash
-php artisan vendor:publish --provider="Aporat\RateLimiter\Laravel\RateLimiterServiceProvider" --tag="config"
+php artisan vendor:publish --provider="Aporat\RateLimiter\RateLimiterServiceProvider" --tag="config"
 ```
 
-This copies `rate-limiter.php` to your `config/` directory.
-
 ## Configuration
-Edit `config/rate-limiter.php` to adjust limits and Redis settings:
+Edit `config/rate-limiter.php`:
 
 ```php
 return [
@@ -65,57 +63,74 @@ return [
         'minute' => 60,
         'second' => 10,
     ],
-    'log_errors' => true, // Set to false to disable logging of rate limit violations
+
+    // Exempt from the middleware. Plain addresses or CIDR ranges, IPv4 or IPv6.
+    'whitelisted_ips' => ['127.0.0.1', '::1', '10.0.0.0/8'],
+
+    // Add X-Rate-Limit-Limit / X-Rate-Limit-Remaining to middleware responses.
+    'headers' => false,
+
+    // When false, RateLimitException is handed back to your application's own
+    // reporters instead of writing its own log line.
+    'log_errors' => true,
+
+    'block_seconds' => 86400,
+
     'redis' => [
+        // Inherit host/port/credentials from a config/database.php connection.
+        'connection' => env('RATE_LIMITER_REDIS_CONNECTION'),
         'host' => env('RATE_LIMITER_REDIS_HOST', '127.0.0.1'),
         'port' => env('RATE_LIMITER_REDIS_PORT', 6379),
+        'username' => env('RATE_LIMITER_REDIS_USERNAME'),
+        'password' => env('RATE_LIMITER_REDIS_PASSWORD'),
         'database' => env('RATE_LIMITER_REDIS_DB', 0),
-        'prefix' => env('RATE_LIMITER_REDIS_PREFIX', 'rate-limiter:'),
+        'prefix' => env('RATE_LIMITER_REDIS_PREFIX', 'rate-limiter'),
+        'timeout' => env('RATE_LIMITER_REDIS_TIMEOUT', 2.0),
+        'read_timeout' => env('RATE_LIMITER_REDIS_READ_TIMEOUT', 2.0),
     ],
 ];
-
 ```
 
-Add these to your `.env` file if needed:
+Anything set explicitly under `redis` overrides the named `connection` it inherits
+from. `prefix` is applied by the package rather than through `Redis::OPT_PREFIX`,
+so the keys the package scans and deletes are the same names it writes.
 
-```
-RATE_LIMITER_REDIS_HOST=127.0.0.1
-RATE_LIMITER_REDIS_PORT=6379
-RATE_LIMITER_REDIS_DB=0
-RATE_LIMITER_REDIS_PREFIX=rate-limiter:
-```
+Config is read live from the container on each call, so a runtime `Config::set()`
+is picked up by the long-lived singleton.
 
 ## Usage
 
 ### Middleware
-Apply rate limiting globally by registering the middleware in `app/Http/Kernel.php`:
+The provider registers the `rate.limiter` alias. Apply it to a route group:
 
 ```php
-protected $middleware = [
+Route::middleware('rate.limiter')->group(function () {
     // ...
-    \Aporat\RateLimiter\Laravel\Middleware\RateLimit::class,
-];
+});
 ```
 
-Or apply it to specific routes:
+Or register it globally in `bootstrap/app.php`:
 
 ```php
-Route::get('/api/test', function () {
-    return 'Hello World';
-})->middleware('Aporat\RateLimiter\Laravel\Middleware\RateLimit');
+->withMiddleware(function (Middleware $middleware) {
+    $middleware->append(\Aporat\RateLimiter\Middleware\RateLimit::class);
+})
 ```
 
-The middleware uses the configured limits (`hourly`, `minute`, `second`) and exempts IPs starting with `10.0.`.
+Each configured window (`hourly`, `minute`, `second`) gets its own counter keyed on
+the client IP; a window set to `0` is skipped. Addresses matching
+`whitelisted_ips` bypass the middleware entirely.
+
+Put the middleware **after** your trusted-proxy middleware, so `getClientIp()`
+returns the real client rather than the load balancer.
 
 ### Manual Rate Limiting
-Use the `RateLimiter` facade for custom limiting:
-
 ```php
-use Aporat\RateLimiter\Laravel\Facades\RateLimiter;
+use Aporat\RateLimiter\Facades\RateLimiter;
 
 Route::post('/submit', function (Request $request) {
     RateLimiter::create($request)
-        ->withUserId(auth()->id() ?? 'guest')
+        ->withUserId((string) $request->user()?->id ?: 'guest')
         ->withName('form_submission')
         ->withTimeInterval(3600)
         ->limit(5); // 5 submissions per hour
@@ -124,45 +139,90 @@ Route::post('/submit', function (Request $request) {
 });
 ```
 
-### IP Blocking
-Block an IP manually:
+`create()` resets the tag, window and attached response, so the singleton is safe
+to reuse. `limit()` throws `RateLimitException` once the count passes the limit;
+`record()` increments and returns the count without throwing, which is what you
+want for duplicate-request detection:
 
 ```php
-RateLimiter::blockIpAddress('192.168.1.1', 86400); // Block for 24 hours
+$count = RateLimiter::create($request)
+    ->withRequestInfo()
+    ->withUserId($userId)
+    ->withTimeInterval(10)
+    ->record();
+
+if ($count > 1) {
+    // duplicate within the window
+}
 ```
 
-Check if an IP is blocked:
+The increment and its expiry are applied in a single Lua script, so a counter can
+never be left without a window if the process dies mid-call, and a key that has
+somehow lost its TTL gets one back on the next write.
 
+### IP Blocking
 ```php
-if (RateLimiter::isIpAddressBlocked()) {
+RateLimiter::blockIpAddress('192.168.1.1', 86400); // defaults to block_seconds
+RateLimiter::unblockIpAddress('192.168.1.1');
+
+if (RateLimiter::create($request)->isIpAddressBlocked()) {
     abort(403, 'Your IP is blocked.');
 }
 ```
 
-### Rate Limit Headers
-Add headers to responses:
+IPv6 addresses are grouped by their `/64` prefix for both counting and blocking,
+so a single client cannot rotate through a subnet it already controls.
 
+### Rate Limit Headers
 ```php
 $response = new Response('OK');
+
 RateLimiter::create($request)
     ->withResponse($response)
     ->withRateLimitHeaders()
+    ->withTimeInterval(3600)
     ->limit(100);
 
-return $response; // Includes X-Rate-Limit-Limit and X-Rate-Limit-Remaining
+return $response; // X-Rate-Limit-Limit and X-Rate-Limit-Remaining
 ```
 
+### Exception handling
+`RateLimitException` implements `HttpExceptionInterface`, so Laravel renders it as
+a `429` with a `Retry-After` header out of the box. Two deliberate omissions:
+
+- It does **not** extend Symfony's `HttpException`, because that class is on the
+  framework's internal "don't report" list, which would silence your own reporters.
+- It does **not** define `render()`, because an exception's own `render()` takes
+  precedence over `$exceptions->render()` callbacks — the rendering decision stays
+  with your application.
+
+With `log_errors` set to `false`, `report()` returns `false` so Laravel continues on
+to your registered report callbacks:
+
+```php
+->withExceptions(function (Exceptions $exceptions) {
+    $exceptions->report(function (RateLimitException $e) {
+        // runs when rate-limiter.log_errors is false
+    });
+})
+```
+
+Request bodies and headers written to the log are redacted for the usual
+credential keys (`authorization`, `cookie`, `password`, `x-auth-signature`, ...).
+
 ## Testing
-Run the test suite:
+The suite talks to a real Redis on `127.0.0.1:6379` (database 15), overridable with
+`REDIS_HOST` and `REDIS_PORT`:
 
 ```bash
 composer test
 ```
 
-Generate coverage reports:
+Static analysis and code style:
 
 ```bash
-composer test-coverage
+composer analyze
+composer check
 ```
 
 ## Contributing
