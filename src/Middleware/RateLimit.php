@@ -5,70 +5,92 @@ declare(strict_types=1);
 namespace Aporat\RateLimiter\Middleware;
 
 use Aporat\RateLimiter\Exceptions\RateLimitException;
-use Aporat\RateLimiter\Facades\RateLimiter;
 use Aporat\RateLimiter\RateLimiter as RateLimiterService;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Middleware to enforce rate limits on incoming requests.
  *
- * Applies rate limiting based on configured hourly, minute, and second thresholds,
- * exempting internal IPs (starting with "10.0."). Uses the RateLimiter facade to
- * track and enforce limits.
+ * Applies the hourly, minute and second thresholds from config to the client IP,
+ * skipping any address listed in `rate-limiter.whitelisted_ips` (plain addresses
+ * or CIDR ranges). Each window gets its own counter key; the limiter instance is
+ * re-created per window so tags do not accumulate across them.
  */
 final class RateLimit
 {
+    /** Window name => length in seconds, longest first. */
+    private const array WINDOWS = [
+        'hourly' => 3600,
+        'minute' => 60,
+        'second' => 1,
+    ];
+
+    public function __construct(private readonly RateLimiterService $limiter) {}
+
     /**
      * Handle an incoming request and apply rate limiting.
      *
      * @param  Request  $request  The incoming HTTP request
-     * @param  Closure  $next  The next middleware in the stack
-     * @return mixed The response after applying rate limits
+     * @param  Closure(Request): Response  $next  The next middleware in the stack
+     * @return Response The response after applying rate limits
      *
      * @throws RateLimitException
      */
-    public function handle(Request $request, Closure $next): mixed
+    public function handle(Request $request, Closure $next): Response
     {
-        $clientIp = $request->getClientIp();
-
-        // Exempt internal IPs starting with "10.0."
-        if ($clientIp !== null && Str::startsWith($clientIp, '10.0.')) {
+        if ($this->limiter->create($request)->isWhitelisted()) {
             return $next($request);
         }
 
-        // Check if the IP is blocked
-        RateLimiter::create($request)->checkIpAddress();
+        $this->limiter->create($request)->checkIpAddress();
 
-        // Apply rate limits from config
-        $limiter = RateLimiter::create($request)->withClientIpAddress();
-        $this->applyRateLimits($limiter);
+        $headers = $this->applyRateLimits($request);
 
-        return $next($request);
+        $response = $next($request);
+
+        if ($headers !== null) {
+            $response->headers->set('X-Rate-Limit-Limit', (string) $headers[0]);
+            $response->headers->set('X-Rate-Limit-Remaining', (string) $headers[1]);
+        }
+
+        return $response;
     }
 
     /**
-     * Apply configured rate limits to the RateLimiter instance.
+     * Apply each configured window to its own counter.
      *
-     * @param  RateLimiterService  $limiter  The configured RateLimiter instance
+     * @return array{int, int}|null The [limit, remaining] pair of the tightest configured
+     *                              window, or null when headers are disabled or nothing is limited
      *
      * @throws RateLimitException
      */
-    private function applyRateLimits(RateLimiterService $limiter): void
+    private function applyRateLimits(Request $request): ?array
     {
-        $limits = [
-            'hourly' => ['limit' => config('rate-limiter.limits.hourly', 0), 'interval' => 3600],
-            'minute' => ['limit' => config('rate-limiter.limits.minute', 0), 'interval' => 60],
-            'second' => ['limit' => config('rate-limiter.limits.second', 0), 'interval' => 1],
-        ];
+        $withHeaders = (bool) $this->limiter->getConfigValue('headers', false);
+        $headers = null;
 
-        foreach ($limits as $name => $settings) {
-            if ($settings['limit'] > 0) {
-                $limiter->withName("requests:$name")
-                    ->withTimeInterval($settings['interval'])
-                    ->limit($settings['limit']);
+        foreach (self::WINDOWS as $name => $interval) {
+            $limit = (int) $this->limiter->getConfigValue("limits.{$name}", 0);
+
+            if ($limit < 1) {
+                continue;
+            }
+
+            $count = $this->limiter->create($request)
+                ->withClientIpAddress()
+                ->withName("requests:{$name}")
+                ->withTimeInterval($interval)
+                ->limit($limit);
+
+            // WINDOWS is ordered longest to shortest, so the last window that ran
+            // is the tightest one and the most useful to report back to the client.
+            if ($withHeaders) {
+                $headers = [$limit, max(0, $limit - $count)];
             }
         }
+
+        return $headers;
     }
 }
