@@ -4,92 +4,74 @@ declare(strict_types=1);
 
 namespace Aporat\RateLimiter\Exceptions;
 
+use Aporat\RateLimiter\LimitResult;
 use Exception;
+use Illuminate\Container\Container;
+use Illuminate\Contracts\Config\Repository as Config;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 /**
- * Exception thrown when a rate limit is exceeded.
+ * Thrown when a rate limit is exceeded or a blocked IP makes a request.
  *
- * Implements HttpExceptionInterface so Laravel renders it as a 429 out of the box.
- * Note that it deliberately does NOT extend Symfony's HttpException: that class sits
- * in the framework's internal "don't report" list, which would silence the
- * application's own reporters for this exception.
+ * Laravel renders it as a 429 with Retry-After and X-RateLimit-* headers, because
+ * it implements HttpExceptionInterface. It does not define render(), so your
+ * `$exceptions->render()` callbacks still decide the body.
  *
- * It also deliberately does NOT define a render() method — an exception's own
- * render() wins over the application's `$exceptions->render()` callbacks, so
- * defining one here would take the decision away from the consuming app.
+ * report() always handles the exception itself: with `rate-limiter.log_errors`
+ * on it writes one warning line (method, path, client IP, retry-after; never
+ * the query string, input or headers), and either way it stops Laravel from
+ * logging every 429 at error level with a stack trace. Listen to the
+ * RateLimitExceeded event to react to refusals instead.
  */
 class RateLimitException extends Exception implements HttpExceptionInterface
 {
     /**
-     * Request headers whose values must never reach the log.
-     *
-     * @var array<int, string>
-     */
-    private const array REDACTED_HEADERS = [
-        'authorization',
-        'cookie',
-        'proxy-authorization',
-        'x-auth-signature',
-        'x-api-key',
-        'x-csrf-token',
-        'x-xsrf-token',
-    ];
-
-    /**
-     * Request input keys whose values must never reach the log.
-     *
-     * @var array<int, string>
-     */
-    private const array REDACTED_INPUT = [
-        'password',
-        'password_confirmation',
-        'token',
-        'access_token',
-        'refresh_token',
-        'secret',
-        'api_key',
-    ];
-
-    /**
-     * Create a new rate limit exception instance.
-     *
-     * @param  string|null  $message  The exception message (defaults to "Too Many Requests")
-     * @param  Request|null  $request  The request triggering the limit
-     * @param  array<string, mixed>|null  $debugInfo  Additional debug data to log
-     * @param  bool  $traceReporting  Whether to log the stack trace
-     * @param  int|null  $retryAfter  Seconds until the caller may retry
+     * @param  array<string, string>  $headers  Headers to send with the 429
      */
     public function __construct(
-        ?string $message = 'Too Many Requests',
+        string $message = 'Too Many Requests',
+        protected array $headers = [],
         protected ?Request $request = null,
-        protected ?array $debugInfo = null,
-        protected bool $traceReporting = false,
-        protected ?int $retryAfter = null,
         ?Throwable $previous = null,
     ) {
-        parent::__construct($message ?? 'Too Many Requests', 0, $previous);
+        parent::__construct($message, 0, $previous);
     }
 
     /**
-     * Get the HTTP status code for the exception.
+     * Build the exception for a refused attempt.
      */
+    public static function fromResult(LimitResult $result, ?Request $request = null): self
+    {
+        return new self('Too Many Requests', $result->headers(), $request);
+    }
+
+    /**
+     * Build the exception for a request from a blocked IP address.
+     */
+    public static function blocked(int $secondsLeft, ?Request $request = null): self
+    {
+        $secondsLeft = max(1, $secondsLeft);
+
+        return new self('Too Many Requests', [
+            'Retry-After' => (string) $secondsLeft,
+            'X-RateLimit-Reset' => (string) (time() + $secondsLeft),
+        ], $request);
+    }
+
     public function getStatusCode(): int
     {
         return 429;
     }
 
     /**
-     * Headers Laravel should attach when rendering this exception.
-     *
      * @return array<string, string>
      */
     public function getHeaders(): array
     {
-        return $this->retryAfter !== null ? ['Retry-After' => (string) $this->retryAfter] : [];
+        return $this->headers;
     }
 
     /**
@@ -97,103 +79,38 @@ class RateLimitException extends Exception implements HttpExceptionInterface
      */
     public function getRetryAfter(): ?int
     {
-        return $this->retryAfter;
+        return isset($this->headers['Retry-After']) ? (int) $this->headers['Retry-After'] : null;
     }
 
-    /**
-     * The request that tripped the limit, if one was supplied.
-     */
     public function getRequest(): ?Request
     {
         return $this->request;
     }
 
     /**
-     * Extra context recorded at the point the limit was tripped.
-     *
-     * @return array<string, mixed>|null
-     */
-    public function getDebugInfo(): ?array
-    {
-        return $this->debugInfo;
-    }
-
-    /**
-     * Report the exception to the log.
-     *
-     * Returns false when the package's own logging is disabled, which tells Laravel
-     * to carry on to the application's registered report callbacks. Returning void
-     * here would short-circuit them and swallow the event entirely.
-     *
-     * @return bool True when this exception has been fully reported here
+     * Log one warning line when `log_errors` is on; never fall through to Laravel's
+     * default error-level reporting.
      */
     public function report(): bool
     {
-        if (! config('rate-limiter.log_errors', false)) {
-            return false;
+        $container = Container::getInstance();
+        $config = $container->bound('config') ? $container->make('config') : null;
+
+        if (! $config instanceof Config || ! $config->get('rate-limiter.log_errors', false) || ! $container->bound('log')) {
+            return true;
         }
 
-        $messageParts = [static::class.': '.$this->getMessage()];
+        $logger = $container->make('log');
 
-        if ($this->request instanceof Request) {
-            $messageParts[] = $this->getRequestDescription($this->request);
+        if ($logger instanceof LoggerInterface) {
+            $logger->warning('Rate limit exceeded', array_filter([
+                'method' => $this->request?->getMethod(),
+                'path' => $this->request?->getPathInfo(),
+                'ip' => $this->request?->getClientIp(),
+                'retry_after' => $this->getRetryAfter(),
+            ], static fn ($value) => $value !== null));
         }
-
-        if ($this->traceReporting) {
-            $messageParts[] = $this->getTraceAsString();
-        }
-
-        if ($this->debugInfo !== null) {
-            $messageParts[] = $this->encode($this->debugInfo);
-        }
-
-        Log::error(implode(' ', $messageParts));
 
         return true;
-    }
-
-    /**
-     * Get a descriptive string of the request details, with credentials redacted.
-     */
-    private function getRequestDescription(Request $request): string
-    {
-        return sprintf(
-            '%s %s %s %s %s',
-            $request->getMethod(),
-            $request->getRequestUri(),
-            (string) $request->server('SERVER_ADDR', 'unknown'),
-            $this->encode($this->redact($request->all(), self::REDACTED_INPUT)),
-            $this->encode($this->redact($request->headers->all(), self::REDACTED_HEADERS)),
-        );
-    }
-
-    /**
-     * Replace the values of sensitive keys with a placeholder.
-     *
-     * @param  array<string, mixed>  $values
-     * @param  array<int, string>  $sensitiveKeys
-     * @return array<string, mixed>
-     */
-    private function redact(array $values, array $sensitiveKeys): array
-    {
-        foreach ($values as $key => $value) {
-            if (in_array(strtolower((string) $key), $sensitiveKeys, true)) {
-                $values[$key] = '[redacted]';
-            } elseif (is_array($value)) {
-                $values[$key] = $this->redact($value, $sensitiveKeys);
-            }
-        }
-
-        return $values;
-    }
-
-    /**
-     * JSON-encode log context without letting an encoding failure mask the limit event.
-     *
-     * @param  array<array-key, mixed>  $value
-     */
-    private function encode(array $value): string
-    {
-        return json_encode($value, JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE) ?: '{}';
     }
 }
