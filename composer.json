@@ -1,12 +1,11 @@
 {
     "name": "aporat/laravel-rate-limiter",
-    "description": "A flexible rate limiting middleware for Laravel and Lumen applications",
+    "description": "Redis-backed, multi-window rate limiting middleware and limiter for Laravel",
     "type": "library",
     "license": "MIT",
     "homepage": "https://github.com/aporat/laravel-rate-limiter",
     "keywords": [
         "laravel",
-        "lumen",
         "rate-limiter",
         "rate-limiting",
         "middleware",
@@ -22,19 +21,26 @@
         }
     ],
     "require": {
-        "php": "^8.4",
-        "ext-json": "*",
-        "ext-redis": "*",
+        "php": "^8.3",
+        "illuminate/contracts": "^12.0 || ^13.0",
         "illuminate/http": "^12.0 || ^13.0",
+        "illuminate/log": "^12.0 || ^13.0",
+        "illuminate/redis": "^12.0 || ^13.0",
+        "illuminate/routing": "^12.0 || ^13.0",
         "illuminate/support": "^12.0 || ^13.0",
-        "symfony/http-foundation": "^7.0 || ^8.0"
+        "symfony/http-foundation": "^7.2 || ^8.0",
+        "symfony/http-kernel": "^7.2 || ^8.0"
     },
     "require-dev": {
         "laravel/pint": "^1.21",
-        "mockery/mockery": "^1.6",
         "orchestra/testbench": "^10.0 || ^11.0",
         "phpstan/phpstan": "^2.1",
-        "phpunit/phpunit": "^11.0 || ^12.0"
+        "phpunit/phpunit": "^11.5 || ^12.0",
+        "predis/predis": "^2.3 || ^3.0"
+    },
+    "suggest": {
+        "ext-redis": "Required to use the phpredis client (Laravel's default).",
+        "predis/predis": "Required to use the predis client."
     },
     "autoload": {
         "psr-4": {
@@ -49,10 +55,7 @@
     "config": {
         "sort-packages": true,
         "optimize-autoloader": true,
-        "preferred-install": "dist",
-        "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
-        }
+        "preferred-install": "dist"
     },
     "extra": {
         "laravel": {
@@ -64,8 +67,13 @@
     "scripts": {
         "test": "phpunit --colors=always",
         "test-ci": "phpunit --colors=always --coverage-text --coverage-clover coverage.xml --log-junit junit.xml",
-        "check": "vendor/bin/pint --test",
-        "analyze": "vendor/bin/phpstan analyse src tests --level=6 --memory-limit=-1"
+        "check": "pint --test",
+        "analyze": "phpstan analyse --memory-limit=-1",
+        "qa": [
+            "@check",
+            "@analyze",
+            "@test"
+        ]
     },
     "support": {
         "issues": "https://github.com/aporat/laravel-rate-limiter/issues",
